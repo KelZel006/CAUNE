@@ -9,6 +9,17 @@
   <div class="kpi"><div class="etq">Afiliados activos</div><div class="valor">{{ afiliados_activos }}</div><div class="det">{{ afiliados_inactivos }} inactivo{{ afiliados_inactivos|pluralize }}</div></div>
   <div class="kpi"><div class="etq">Operaciones del mes</div><div class="valor">{{ movimientos_mes }}</div><div class="det">Desde el {{ inicio_mes|fecha }}</div></div>
 </div>
+{% if ver_prestamos or actividades_anio %}
+<div class="kpis">
+  {% if ver_prestamos %}
+  <div class="kpi"><div class="etq">Cartera de préstamos vigente</div><div class="valor">{{ cartera|lempiras }}</div><div class="det">{{ prestamos_vigentes }} vigente{{ prestamos_vigentes|pluralize }}{% if por_desembolsar %} · {{ por_desembolsar }} por desembolsar{% endif %}</div></div>
+  <div class="kpi aportacion"><div class="etq">Intereses cobrados del mes</div><div class="valor">{{ intereses_mes|lempiras }}</div><div class="det">Intereses efectivamente cobrados</div></div>
+  {% endif %}
+  {% if actividades_anio %}
+  <div class="kpi"><div class="etq">Actividades {{ anio }}</div><div class="valor {% if actividades_anio.neto < 0 %}perdida{% endif %}">{{ actividades_anio.neto|lempiras }}</div><div class="det">Ingresos {{ actividades_anio.ingresos|lempiras }} · gastos {{ actividades_anio.gastos|lempiras }}</div></div>
+  {% endif %}
+</div>
+{% endif %}
 <div class="card">
   <div class="card-head con-filete"><h2>Últimas operaciones registradas</h2>
     <div class="acciones">{% if perms.aportaciones.add_movimientoafiliado %}<a class="btn primario" href="{% url 'aportaciones:crear' %}">{% icono "mas" %}Registrar movimiento</a>{% endif %}<a class="btn" href="{% url 'aportaciones:lista' %}">Ver todas</a></div></div>

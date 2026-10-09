@@ -1,0 +1,17 @@
+{% extends "pdf/base_pdf.html" %}{% load caune %}
+{% block orientacion %}landscape{% endblock %}
+{% block titulo %}Cuadro de amortización · Préstamo {{ p.numero }}{% endblock %}
+{% block contenido %}
+<table style="margin-bottom:8px"><tr>
+  <td>Prestatario: <b>{{ p.prestatario_nombre }}</b></td>
+  <td>Monto: <b>{{ p.monto_aprobado|lempiras }}</b></td>
+  <td>Tasa: <b>{{ p.tasa|floatformat:2 }} % mensual</b>{% if p.tasa_es_excepcion %} (excepción){% endif %}</td>
+  <td>Método: <b>{{ p.get_metodo_amortizacion_display }}</b></td>
+  <td>Aprobado: <b>{{ p.fecha_aprobacion|fecha }}</b></td>
+</tr></table>
+<table>
+  <thead><tr><th class="num">N.º</th><th>Vencimiento</th><th class="num">Saldo inicial</th><th class="num">Capital</th><th class="num">Interés</th><th class="num">Cuota</th><th class="num">Saldo final</th><th class="num">Pagado</th><th class="num">Pendiente</th><th>Estado</th></tr></thead>
+  <tbody>{% for c in r.cuotas %}<tr><td class="num">{{ c.cuota.numero }}</td><td>{{ c.cuota.fecha_vencimiento|fecha }}</td><td class="num">{{ c.cuota.saldo_inicial|lempiras }}</td><td class="num">{{ c.cuota.capital|lempiras }}</td><td class="num">{{ c.cuota.interes|lempiras }}</td><td class="num">{{ c.cuota.cuota|lempiras }}</td><td class="num">{{ c.cuota.saldo_final|lempiras }}</td><td class="num">{{ c.capital_pagado|add_dec:c.interes_pagado|lempiras }}</td><td class="num">{{ c.pendiente|lempiras }}</td><td>{{ c.estado|title }}</td></tr>{% endfor %}</tbody>
+</table>
+<p class="muted">Saldo de capital: <b>{{ r.saldo_capital|lempiras }}</b> · Intereses cobrados: {{ r.intereses_cobrados|lempiras }} · Intereses pendientes: {{ r.intereses_pendientes|lempiras }} · Total pendiente: <b>{{ r.total_pendiente|lempiras }}</b></p>
+{% endblock %}

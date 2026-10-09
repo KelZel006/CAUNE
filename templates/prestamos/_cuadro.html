@@ -1,0 +1,6 @@
+{% load caune %}
+<div class="tabla-wrap"><table class="tabla">
+  <thead><tr><th class="num">N.º</th><th>Vencimiento</th><th class="num">Saldo inicial</th><th class="num">Capital</th><th class="num">Interés</th><th class="num">Cuota</th><th class="num">Saldo final</th></tr></thead>
+  <tbody>{% for f in filas %}<tr><td class="num">{{ f.numero }}</td><td>{{ f.fecha_vencimiento|fecha }}</td><td class="num">{{ f.saldo_inicial|lempiras }}</td><td class="num">{{ f.capital|lempiras }}</td><td class="num">{{ f.interes|lempiras }}</td><td class="num"><strong>{{ f.cuota|lempiras }}</strong></td><td class="num">{{ f.saldo_final|lempiras }}</td></tr>{% endfor %}</tbody>
+  <tfoot><tr><td colspan="3">Totales</td><td class="num">{{ totales.capital|lempiras }}</td><td class="num">{{ totales.interes|lempiras }}</td><td class="num">{{ totales.total|lempiras }}</td><td></td></tr></tfoot>
+</table></div>

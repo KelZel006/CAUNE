@@ -35,6 +35,69 @@ DEFINICIONES = {
         grupo=G.OPERACION, valor="true", afecta_calculos=True,
         descripcion="Decisión G1: control de doble persona para corregir operaciones.",
     ),
+    "prestamos.tasa_interna": dict(
+        nombre="Tasa de préstamos internos (% mensual)", tipo=T.DECIMAL, grupo=G.PRESTAMOS, valor="1.00",
+        afecta_calculos=True,
+        descripcion="Se copia a cada préstamo al aprobarlo; un cambio no afecta préstamos existentes.",
+    ),
+    "prestamos.tasa_externa": dict(
+        nombre="Tasa de préstamos externos (% mensual)", tipo=T.DECIMAL, grupo=G.PRESTAMOS, valor="5.00",
+        afecta_calculos=True,
+        descripcion="Se copia a cada préstamo al aprobarlo; un cambio no afecta préstamos existentes.",
+    ),
+    "prestamos.periodicidad_tasa": dict(
+        nombre="Periodicidad de las tasas", tipo=T.TEXTO, grupo=G.PRESTAMOS, valor="MENSUAL", afecta_calculos=True,
+        descripcion="Decisión P1: MENSUAL. Es la única modalidad que el sistema calcula hoy.",
+    ),
+    "prestamos.metodos_permitidos": dict(
+        nombre="Métodos de amortización permitidos", tipo=T.TEXTO, grupo=G.PRESTAMOS,
+        valor="CUOTA_FIJA,CAPITAL_FIJO", afecta_calculos=True,
+        descripcion="Separados por coma: CUOTA_FIJA (sistema francés) y/o CAPITAL_FIJO (saldo decreciente).",
+    ),
+    "prestamos.plazo_maximo": dict(
+        nombre="Plazo máximo (cuotas mensuales)", tipo=T.ENTERO, grupo=G.PRESTAMOS, valor="60", afecta_calculos=True,
+    ),
+    "prestamos.permitir_pagos_parciales": dict(
+        nombre="Permitir pagos parciales de cuotas", tipo=T.BOOLEANO, grupo=G.PRESTAMOS, valor="true",
+        afecta_calculos=True,
+        descripcion="Decisión P4: se acepta cualquier monto; cubre primero el interés y luego el capital.",
+    ),
+    "prestamos.permitir_excepcion_tasa": dict(
+        nombre="Permitir tasas de excepción autorizadas", tipo=T.BOOLEANO, grupo=G.PRESTAMOS, valor="true",
+        afecta_calculos=True,
+        descripcion="Si se permite, una tasa distinta a la configurada exige permiso de autorización y motivo.",
+    ),
+}
+
+
+def _validar_metodos(valor):
+    metodos = [m.strip() for m in str(valor).split(",") if m.strip()]
+    if not metodos or any(m not in ("CUOTA_FIJA", "CAPITAL_FIJO") for m in metodos):
+        raise ValueError("Indique CUOTA_FIJA y/o CAPITAL_FIJO separados por coma.")
+
+
+def _validar_tasa(valor):
+    if valor is None or not (0 <= valor <= 100):
+        raise ValueError("La tasa debe estar entre 0 y 100.")
+
+
+def _validar_periodicidad(valor):
+    if valor != "MENSUAL":
+        raise ValueError("Por ahora el sistema solo calcula tasas MENSUALES (decisión P1).")
+
+
+def _validar_plazo(valor):
+    if valor is None or not (1 <= valor <= 360):
+        raise ValueError("El plazo máximo debe estar entre 1 y 360 cuotas.")
+
+
+# Validaciones de negocio adicionales al tipo de dato
+VALIDADORES = {
+    "prestamos.tasa_interna": _validar_tasa,
+    "prestamos.tasa_externa": _validar_tasa,
+    "prestamos.periodicidad_tasa": _validar_periodicidad,
+    "prestamos.metodos_permitidos": _validar_metodos,
+    "prestamos.plazo_maximo": _validar_plazo,
 }
 
 
@@ -61,7 +124,9 @@ def actualizar(parametro, valor_nuevo, usuario, motivo=""):
         raise ValidationError("No tiene permiso para modificar la configuración.")
     parametro = Parametro.objects.select_for_update().get(pk=parametro.pk)
     try:
-        Parametro.convertir(parametro.tipo, valor_nuevo)
+        tipado = Parametro.convertir(parametro.tipo, valor_nuevo)
+        if parametro.clave in VALIDADORES:
+            VALIDADORES[parametro.clave](tipado)
     except ValueError as exc:
         raise ValidationError(str(exc)) from exc
     valor_nuevo = "" if valor_nuevo is None else str(valor_nuevo).strip()

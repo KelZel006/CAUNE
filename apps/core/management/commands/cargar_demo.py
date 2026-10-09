@@ -48,6 +48,11 @@ class Command(BaseCommand):
         deposito = TipoMovimiento.objects.get(codigo="DEP")
         hoy = timezone.localdate()
         rnd = random.Random(2026)
+        from apps.afiliados.models import Afiliado
+        if Afiliado.objects.filter(apellidos__startswith="Demo").exists():
+            self.stdout.write("Ya existen afiliados de demostración; solo se agregan datos de la Fase 2.")
+            self._fase2(usuario, caja, hoy)
+            return
         for i in range(opciones["afiliados"]):
             ingreso = hoy - timedelta(days=rnd.randint(120, 400))
             afiliado = crear_afiliado({
@@ -65,6 +70,56 @@ class Command(BaseCommand):
                                          monto=Decimal(rnd.randint(2, 20) * 100), metodo_pago=MetodoPago.EFECTIVO,
                                          cuenta_fondo=caja, usuario=usuario, observacion="DEMO")
                 fecha += timedelta(days=30)
+        self._fase2(usuario, caja, hoy)
         self.stdout.write(self.style.WARNING(
             f"Datos FICTICIOS cargados (identidades 9999…, apellidos «Demo»). "
             f"Usuarios: {', '.join(USUARIOS_DEMO)} (clave en cargar_demo.py)"))
+
+    def _fase2(self, usuario, caja, hoy):
+        """Préstamos y actividades ficticios (solo si aún no hay préstamos)."""
+        from apps.actividades import services as acs
+        from apps.afiliados.models import Afiliado
+        from apps.prestamos import services as ps
+        from apps.prestamos.models import Prestamo
+
+        if Prestamo.objects.exists():
+            return
+        afiliados = list(Afiliado.objects.filter(apellidos__startswith="Demo").order_by("codigo")[:3])
+        inicio = hoy - timedelta(days=120)
+        p1 = ps.aprobar_prestamo(usuario=usuario, tipo_prestatario="INTERNO", afiliado=afiliados[0],
+                                 monto_solicitado="15000", monto_aprobado="15000", plazo=12,
+                                 metodo_amortizacion="CUOTA_FIJA", fecha_aprobacion=inicio,
+                                 fecha_primer_vencimiento=inicio + timedelta(days=30), observaciones="DEMO")
+        ps.desembolsar(p1, usuario=usuario, fecha=inicio, cuenta=caja, metodo_pago="EFECTIVO")
+        for cuota in p1.cuotas.filter(fecha_vencimiento__lte=hoy).order_by("numero"):
+            ps.registrar_pago(p1, usuario=usuario, tipo="PAGO", fecha=cuota.fecha_vencimiento, monto=cuota.cuota,
+                              metodo_pago="EFECTIVO", cuenta_fondo=caja, observacion="DEMO")
+        p2 = ps.aprobar_prestamo(usuario=usuario, tipo_prestatario="INTERNO", afiliado=afiliados[1],
+                                 monto_solicitado="8000", monto_aprobado="8000", plazo=8,
+                                 metodo_amortizacion="CAPITAL_FIJO", fecha_aprobacion=hoy - timedelta(days=40),
+                                 fecha_primer_vencimiento=hoy - timedelta(days=10), observaciones="DEMO")
+        ps.desembolsar(p2, usuario=usuario, fecha=hoy - timedelta(days=40), cuenta=caja, metodo_pago="EFECTIVO")
+        ps.registrar_pago(p2, usuario=usuario, tipo="PAGO", fecha=hoy - timedelta(days=9), monto=Decimal("500"),
+                          metodo_pago="EFECTIVO", cuenta_fondo=caja, observacion="DEMO: pago parcial")
+        ps.aprobar_prestamo(usuario=usuario, tipo_prestatario="EXTERNO",
+                            externo={"nombre_completo": "Prestatario Externo Demo", "identidad": "8888199000001"},
+                            monto_solicitado="5000", monto_aprobado="4000", plazo=6,
+                            metodo_amortizacion="CUOTA_FIJA", fecha_aprobacion=hoy,
+                            fecha_primer_vencimiento=hoy + timedelta(days=30), observaciones="DEMO (por desembolsar)")
+        act = acs.crear_actividad({"nombre": "Venta de comida (demo)", "descripcion": "Actividad ficticia",
+                                   "fecha_inicio": hoy - timedelta(days=60)}, usuario)
+        comida = acs.crear_subactividad(act, {"nombre": "Comida"}, usuario)
+        bebidas = acs.crear_subactividad(act, {"nombre": "Bebidas"}, usuario)
+        for tipo, sub, concepto, monto in (("INGRESO", comida, "Venta de baleadas", "3200"),
+                                           ("GASTO", comida, "Compra de ingredientes", "1450.75"),
+                                           ("INGRESO", bebidas, "Venta de refrescos", "980"),
+                                           ("GASTO", bebidas, "Compra de refrescos", "620"),
+                                           ("GASTO", None, "Alquiler de mesas", "300")):
+            acs.registrar_movimiento(actividad=act, subactividad=sub, tipo=tipo, fecha=hoy - timedelta(days=30),
+                                     concepto=concepto, monto=Decimal(monto), metodo_pago="EFECTIVO",
+                                     cuenta_fondo=caja, usuario=usuario, observacion="DEMO")
+        rifa = acs.crear_actividad({"nombre": "Rifa navideña (demo)", "fecha_inicio": hoy - timedelta(days=20)}, usuario)
+        acs.registrar_movimiento(actividad=rifa, tipo="INGRESO", fecha=hoy - timedelta(days=5), concepto="Boletos",
+                                 monto=Decimal("1500"), metodo_pago="EFECTIVO", cuenta_fondo=caja, usuario=usuario)
+        acs.registrar_movimiento(actividad=rifa, tipo="GASTO", fecha=hoy - timedelta(days=5), concepto="Premio",
+                                 monto=Decimal("1800"), metodo_pago="EFECTIVO", cuenta_fondo=caja, usuario=usuario)

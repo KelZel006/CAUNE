@@ -1,0 +1,28 @@
+{% extends "base.html" %}{% load caune %}
+{% block titulo %}Actividades económicas{% endblock %}
+{% block encabezado %}Actividades económicas{% endblock %}
+{% block contenido %}
+<div class="kpis">
+  <div class="kpi aportacion"><div class="etq">Ingresos totales</div><div class="valor">{{ general.ingresos|lempiras }}</div></div>
+  <div class="kpi deposito"><div class="etq">Gastos totales</div><div class="valor">{{ general.gastos|lempiras }}</div></div>
+  <div class="kpi destacado"><div class="etq">Resultado neto</div><div class="valor">{{ general.neto|lempiras }}</div><div class="det">{% if general.neto >= 0 %}Ganancia{% else %}Pérdida{% endif %} acumulada de todas las actividades</div></div>
+</div>
+<div class="card">
+  <div class="card-head">
+    <form method="get" class="buscador">{% icono "buscar" %}<input type="search" name="q" value="{{ q }}" placeholder="Buscar actividad"><button class="btn">Buscar</button></form>
+    <div class="acciones">
+      {% if perms.core.ver_reportes %}<a class="btn" href="{% url 'reportes:actividades' %}">Reportes</a>{% endif %}
+      {% if perms.actividades.add_actividad %}<a class="btn primario" href="{% url 'actividades:crear' %}">{% icono "mas" %}Nueva actividad</a>{% endif %}
+    </div>
+  </div>
+  <div class="tabla-wrap"><table class="tabla">
+    <thead><tr><th>{% orden "codigo" "Código" %}</th><th>{% orden "nombre" "Actividad" %}</th><th>{% orden "inicio" "Inicio" %}</th><th class="num">Ingresos</th><th class="num">Gastos</th><th class="num">Resultado</th><th>Estado</th></tr></thead>
+    <tbody>{% for a in object_list %}<tr><td><a href="{% url 'actividades:detalle' a.pk %}"><strong>{{ a.codigo }}</strong></a></td><td><a href="{% url 'actividades:detalle' a.pk %}">{{ a.nombre }}</a></td><td>{{ a.fecha_inicio|fecha }}</td>
+      <td class="num">{{ a.ingresos|lempiras }}</td><td class="num">{{ a.gastos|lempiras }}</td>
+      {% with neto=a.ingresos|restar:a.gastos %}<td class="num {% if neto < 0 %}perdida{% else %}ganancia{% endif %}"><strong>{{ neto|lempiras }}</strong></td>{% endwith %}
+      <td>{% if a.activa %}<span class="badge ok">Activa</span>{% else %}<span class="badge off">Cerrada</span>{% endif %}</td></tr>
+    {% empty %}<tr><td colspan="7" class="vacio">Aún no hay actividades registradas.</td></tr>{% endfor %}</tbody>
+  </table></div>
+  {% include "partials/paginacion.html" %}
+</div>
+{% endblock %}

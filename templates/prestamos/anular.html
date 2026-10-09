@@ -1,0 +1,12 @@
+{% extends "base.html" %}{% load caune %}
+{% block titulo %}Anular {{ p.numero }}{% endblock %}
+{% block encabezado %}Anular préstamo {{ p.numero }}{% endblock %}
+{% block contenido %}
+<div class="card" style="max-width:760px">
+  <div class="aviso-anulado">El préstamo de {{ p.monto_aprobado|lempiras }} a {{ p.prestatario_nombre }} quedará anulado. Solo se anulan préstamos no desembolsados; el registro se conserva para auditoría.</div>
+  <form method="post" novalidate>{% csrf_token %}
+    {% include "partials/campos.html" %}
+    <div class="form-pie"><a class="btn" href="{% url 'prestamos:detalle' p.pk %}">Cancelar</a><button class="btn peligro" type="submit">Anular préstamo</button></div>
+  </form>
+</div>
+{% endblock %}

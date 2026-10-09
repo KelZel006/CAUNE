@@ -1,0 +1,47 @@
+{% extends "base.html" %}{% load caune %}
+{% block titulo %}{{ object.codigo }}{% endblock %}
+{% block encabezado %}{{ object.codigo }} · {{ object.nombre }}{% endblock %}
+{% block contenido %}
+<div class="acciones no-imprimir" style="margin-bottom:1rem">
+  <a class="btn" href="{% url 'actividades:lista' %}">{% icono "volver" %}Actividades</a>
+  {% if object.activa and perms.actividades.add_movimientoactividad %}
+    <a class="btn primario" href="{% url 'actividades:registrar' object.pk %}?tipo=INGRESO">{% icono "mas" %}Registrar ingreso</a>
+    <a class="btn" href="{% url 'actividades:registrar' object.pk %}?tipo=GASTO">{% icono "mas" %}Registrar gasto</a>
+  {% endif %}
+  {% if perms.actividades.add_subactividad %}<a class="btn" href="{% url 'actividades:subactividad_crear' object.pk %}">Nueva subactividad</a>{% endif %}
+  {% if perms.actividades.change_actividad %}<a class="btn" href="{% url 'actividades:editar' object.pk %}">{% icono "editar" %}Editar</a>{% endif %}
+  {% if perms.actividades.cambiar_estado_actividad %}<a class="btn" href="{% url 'actividades:cambiar_estado' object.pk %}">{% if object.activa %}Cerrar actividad{% else %}Reabrir{% endif %}</a>{% endif %}
+</div>
+<div class="kpis">
+  <div class="kpi aportacion"><div class="etq">Total de ingresos</div><div class="valor">{{ resultado.ingresos|lempiras }}</div></div>
+  <div class="kpi deposito"><div class="etq">Total de gastos</div><div class="valor">{{ resultado.gastos|lempiras }}</div></div>
+  <div class="kpi destacado"><div class="etq">Resultado neto</div><div class="valor">{{ resultado.neto|lempiras }}</div><div class="det">{% if resultado.neto > 0 %}La actividad genera ganancia{% elif resultado.neto < 0 %}La actividad genera pérdida{% else %}Sin ganancia ni pérdida{% endif %}</div></div>
+</div>
+<div class="cols-2" style="grid-template-columns:minmax(0,3fr) minmax(0,2fr)">
+  <div class="card">
+    <div class="card-head con-filete"><h2>Ingresos y gastos</h2><span class="small muted">Últimos 50 · {% if object.activa %}<span class="badge ok">Activa</span>{% else %}<span class="badge off">Cerrada</span>{% endif %}</span></div>
+    <div class="tabla-wrap"><table class="tabla">
+      <thead><tr><th>Número</th><th>Fecha</th><th>Concepto</th><th>Subactividad</th><th class="num">Monto</th><th></th></tr></thead>
+      <tbody>{% for m in movimientos %}<tr class="{% if m.estado == 'ANULADO' %}anulado{% endif %}"><td class="sin-tachar nowrap">{{ m.numero }}</td><td>{{ m.fecha|fecha }}</td>
+        <td><span class="tipo {% if m.tipo == 'INGRESO' %}tipo-aportacion{% else %}tipo-deposito{% endif %}">{{ m.concepto }}</span></td><td class="small">{{ m.subactividad.nombre|default:"General" }}</td>
+        <td class="num {% if m.tipo == 'GASTO' %}perdida{% endif %}">{{ m.monto_con_signo|lempiras }}</td>
+        <td class="sin-tachar">{% if m.estado == 'ANULADO' %}<span class="badge mal">Anulado</span>{% elif perms.actividades.anular_movimientoactividad %}<a class="btn sm" href="{% url 'actividades:anular' m.pk %}">Anular</a>{% endif %}</td></tr>
+      {% empty %}<tr><td colspan="6" class="vacio">Sin ingresos ni gastos registrados.</td></tr>{% endfor %}</tbody>
+    </table></div>
+    <p class="muted small">Naranja = ingreso · azul = gasto. Los anulados no suman.</p>
+  </div>
+  <div>
+    <div class="card"><h2>Resultado por subactividad</h2>
+      <div class="tabla-wrap"><table class="tabla">
+        <thead><tr><th>Subactividad</th><th class="num">Ingresos</th><th class="num">Gastos</th><th class="num">Neto</th></tr></thead>
+        <tbody>{% for f in por_sub %}<tr><td>{{ f.subactividad.nombre|default:"General" }}</td><td class="num">{{ f.ingresos|lempiras }}</td><td class="num">{{ f.gastos|lempiras }}</td><td class="num {% if f.neto < 0 %}perdida{% else %}ganancia{% endif %}">{{ f.neto|lempiras }}</td></tr>
+        {% empty %}<tr><td colspan="4" class="vacio">Sin subactividades.</td></tr>{% endfor %}</tbody>
+      </table></div>
+    </div>
+    <div class="card"><h2>Datos</h2>
+      <dl class="datos"><div><dt>Inicio</dt><dd>{{ object.fecha_inicio|fecha }}</dd></div><div><dt>Creada por</dt><dd>{{ object.creado_por }}</dd></div>
+      {% if object.descripcion %}<div style="grid-column:1/-1"><dt>Descripción</dt><dd>{{ object.descripcion }}</dd></div>{% endif %}</dl>
+    </div>
+  </div>
+</div>
+{% endblock %}

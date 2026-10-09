@@ -12,8 +12,40 @@ def lempiras(valor):
 
 
 @register.filter
+def restar(valor, otro):
+    """Resta exacta de Decimal (el filtro `add` de Django convierte a entero y trunca centavos)."""
+    return (valor or 0) - (otro or 0)
+
+
+@register.filter
+def add_dec(valor, otro):
+    """Suma exacta de Decimal."""
+    return (valor or 0) + (otro or 0)
+
+
+@register.filter
 def letras(valor):
     return monto_en_letras(valor)
+
+
+@register.filter
+def celda(valor):
+    """Formato de celda para reportes genéricos: dinero en lempiras, fechas DD/MM/AAAA."""
+    from datetime import date
+    from decimal import Decimal
+
+    if isinstance(valor, Decimal):
+        return formato_lempiras(valor)
+    if isinstance(valor, date):
+        return valor.strftime("%d/%m/%Y")
+    return "" if valor is None else valor
+
+
+@register.filter
+def es_numero(valor):
+    from decimal import Decimal
+
+    return isinstance(valor, (Decimal, int, float)) and not isinstance(valor, bool)
 
 
 @register.filter

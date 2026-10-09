@@ -31,6 +31,7 @@ class Parametro(models.Model):
     class Grupo(models.TextChoices):
         GENERAL = "GENERAL", "Datos generales de CAUNE"
         OPERACION = "OPERACION", "Reglas de operación"
+        PRESTAMOS = "PRESTAMOS", "Préstamos"
 
     clave = models.CharField(max_length=80, unique=True)
     nombre = models.CharField(max_length=150)

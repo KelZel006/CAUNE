@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block titulo %}Registrar en {{ actividad.codigo }}{% endblock %}
+{% block encabezado %}Registrar ingreso o gasto · {{ actividad.nombre }}{% endblock %}
+{% block contenido %}
+<div class="card" style="max-width:900px">
+  <p class="nota">Una vez guardado, el registro queda confirmado y no puede editarse. Si hubo un error, otra persona autorizada debe anularlo con su motivo.</p>
+  <form method="post" novalidate onsubmit="var b=this.querySelector('button[type=submit]');b.disabled=true;b.textContent='Guardando…';">{% csrf_token %}
+    {% include "partials/campos.html" %}
+    <div class="form-pie"><a class="btn" href="{% url 'actividades:detalle' actividad.pk %}">Cancelar</a><button class="btn primario" type="submit">Confirmar y registrar</button></div>
+  </form>
+</div>
+{% endblock %}

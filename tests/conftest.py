@@ -61,6 +61,30 @@ def prestamos(db):
 
 
 @pytest.fixture
+def encargado_actividades(db):
+    return _usuario("actividades", "Encargado de actividades")
+
+
+@pytest.fixture
+def nuevo_prestamo(tesorero, caja):
+    """Aprueba (y opcionalmente desembolsa) un préstamo interno con valores por defecto."""
+    from apps.prestamos import services as ps
+
+    def crear(afiliado, monto="1000", plazo=2, metodo="CUOTA_FIJA", desembolsar=True, cuenta=None, **extra):
+        hoy = timezone.localdate()
+        datos = dict(usuario=tesorero, tipo_prestatario="INTERNO", afiliado=afiliado, monto_solicitado=monto,
+                     monto_aprobado=monto, plazo=plazo, metodo_amortizacion=metodo,
+                     fecha_aprobacion=hoy - timedelta(days=60), fecha_primer_vencimiento=hoy - timedelta(days=30))
+        datos.update(extra)
+        p = ps.aprobar_prestamo(**datos)
+        if desembolsar:
+            p = ps.desembolsar(p, usuario=tesorero, fecha=hoy - timedelta(days=59), cuenta=cuenta or caja,
+                               metodo_pago="EFECTIVO")
+        return p
+    return crear
+
+
+@pytest.fixture
 def sin_rol(db):
     return _usuario("sin.rol")
 

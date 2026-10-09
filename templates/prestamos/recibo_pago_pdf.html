@@ -1,0 +1,23 @@
+{% extends "pdf/base_pdf.html" %}{% load caune %}
+{% block titulo %}{{ pago.get_tipo_display }} · N.º {{ pago.numero_recibo }}{% if pago.estado == 'ANULADO' %} — ANULADO{% endif %}{% endblock %}
+{% block contenido %}
+<table>
+  <tr><td style="width:30%" class="muted">Fecha</td><td><b>{{ pago.fecha|fecha }}</b></td></tr>
+  <tr><td class="muted">Recibido de</td><td><b>{{ pago.prestamo.prestatario_nombre }}</b></td></tr>
+  <tr><td class="muted">Préstamo</td><td>{{ pago.prestamo.numero }}</td></tr>
+  <tr><td class="muted">Forma de pago</td><td>{{ pago.get_metodo_pago_display }}{% if pago.referencia %} · Ref. {{ pago.referencia }}{% endif %} · {{ pago.cuenta_fondo.nombre }}</td></tr>
+  <tr class="total"><td>Monto</td><td style="font-size:14pt">{{ pago.monto|lempiras }}</td></tr>
+  <tr><td class="muted">La suma de</td><td><b>{{ pago.monto|letras }}</b></td></tr>
+</table>
+<table style="margin-top:10px">
+  <thead><tr><th class="num">Cuota</th><th>Vencimiento</th><th class="num">Interés</th><th class="num">Capital</th></tr></thead>
+  <tbody>{% for a in aplicaciones %}<tr><td class="num">{{ a.cuota.numero }}</td><td>{{ a.cuota.fecha_vencimiento|fecha }}</td><td class="num">{{ a.interes|lempiras }}</td><td class="num">{{ a.capital|lempiras }}</td></tr>{% endfor %}</tbody>
+</table>
+<p>Saldo de capital actual: <b>{{ r.saldo_capital|lempiras }}</b></p>
+{% if pago.estado == 'ANULADO' %}<p style="color:#b42318;font-size:12pt"><b>PAGO ANULADO</b> el {{ pago.anulado_en|date:"d/m/Y H:i" }}. Motivo: {{ pago.motivo_anulacion }}</p>{% endif %}
+<table style="margin-top:40px"><tr>
+  <td style="width:40%;border-top:1px solid #15233d;text-align:center;border-bottom:none;vertical-align:bottom">Entregó</td>
+  <td style="width:20%;border-bottom:none;text-align:center">{% if pago.estado == 'CONFIRMADO' %}<img src="img/logo-caune-pdf.png" width="80" height="80">{% endif %}</td>
+  <td style="width:40%;border-top:1px solid #15233d;text-align:center;border-bottom:none;vertical-align:bottom">Recibió · {{ pago.registrado_por.get_full_name|default:pago.registrado_por.username }}</td>
+</tr></table>
+{% endblock %}

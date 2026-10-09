@@ -178,6 +178,7 @@ table.tabla { width: 100%; border-collapse: collapse; font-size: .9rem; }
 .tabla th:first-child { border-top-left-radius: var(--radio-sm); }
 .tabla th:last-child { border-top-right-radius: var(--radio-sm); }
 .tabla td { font-variant-numeric: tabular-nums; }
+.tabla th.num, .tabla td.num { text-align: right; }
 .tabla tbody tr { transition: background-color .12s; }
 .tabla tbody tr:hover { background: #f8fafd; }
 .tabla tfoot td { font-weight: 700; background: var(--marino-50); color: var(--marino-900); border-top: 1px solid var(--borde-fuerte); }
@@ -245,6 +246,12 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--u
 .tipo-deposito::before { background: var(--union); }
 .recibo-head h2 { margin: 0; font-size: 1.05rem; }
 .card-head.con-filete { padding-bottom: .85rem; border-bottom: 1px solid var(--oro-claro); }
+
+.ganancia { color: var(--verde); }
+.perdida { color: var(--rojo); }
+.kpi.destacado .valor.perdida { color: #ffb4ab; }
+.campo ul, .campo div[id^='id_'] { list-style: none; margin: 0; padding: 0; display: flex; gap: 1rem; flex-wrap: wrap; }
+.campo ul label, .campo div[id^='id_'] label { font-weight: 500; color: var(--tinta); display: flex; gap: .4rem; align-items: center; }
 
 /* encabezado sellado: identifica constancias oficiales (operación, estado de cuenta) */
 .sellado { display: flex; align-items: center; gap: 1rem; flex-wrap: nowrap; }

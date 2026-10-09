@@ -1,7 +1,7 @@
 """Roles iniciales (mínimo privilegio). Son configurables desde Configuración → Roles."""
 from django.contrib.auth.models import Group, Permission
 
-APPS_CAUNE = ("core", "afiliados", "aportaciones", "auth")
+APPS_CAUNE = ("core", "afiliados", "aportaciones", "prestamos", "actividades", "auth")
 
 ROLES = {
     "Administrador": "__todos__",
@@ -12,17 +12,30 @@ ROLES = {
         "core.ver_dashboard_financiero", "core.ver_reportes",
         "afiliados.view_afiliado", "afiliados.ver_estado_cuenta",
         "aportaciones.view_movimientoafiliado", "aportaciones.view_tipomovimiento",
+        "prestamos.view_prestamo", "prestamos.view_pagoprestamo",
+        "actividades.view_actividad", "actividades.view_movimientoactividad",
     ],
     "Encargado de préstamos": [
-        "afiliados.view_afiliado", "afiliados.ver_estado_cuenta",
+        "core.ver_reportes", "afiliados.view_afiliado", "afiliados.ver_estado_cuenta",
+        "prestamos.view_prestamo", "prestamos.add_prestamo", "prestamos.desembolsar_prestamo",
+        "prestamos.view_pagoprestamo", "prestamos.add_pagoprestamo",
     ],
-    "Encargado de actividades": [],
+    "Encargado de actividades": [
+        "core.ver_reportes",
+        "actividades.view_actividad", "actividades.add_actividad", "actividades.change_actividad",
+        "actividades.add_subactividad", "actividades.view_movimientoactividad",
+        "actividades.add_movimientoactividad",
+    ],
     "Contador o supervisor": [
         "core.ver_dashboard_financiero", "core.ver_reportes", "core.ver_auditoria",
         "core.view_cuentafondo", "core.view_parametro", "core.view_secuencia",
         "afiliados.view_afiliado", "afiliados.ver_estado_cuenta",
         "aportaciones.view_tipomovimiento", "aportaciones.view_movimientoafiliado",
         "aportaciones.anular_movimientoafiliado",
+        "prestamos.view_prestamo", "prestamos.view_pagoprestamo", "prestamos.anular_pagoprestamo",
+        "prestamos.anular_prestamo",
+        "actividades.view_actividad", "actividades.view_movimientoactividad",
+        "actividades.anular_movimientoactividad",
     ],
 }
 
@@ -42,12 +55,15 @@ def _resolver(codigos):
 
 
 def configurar_roles(restablecer=False):
-    """Crea los roles que falten. Con restablecer=True devuelve sus permisos a los iniciales."""
+    """Crea los roles que falten y les agrega permisos nuevos. restablecer=True los deja exactamente como el inicial."""
     resultado = {}
     for nombre, codigos in ROLES.items():
         grupo, creado = Group.objects.get_or_create(name=nombre)
+        permisos = list(permisos_asignables()) if codigos == "__todos__" else _resolver(codigos)
         if creado or restablecer:
-            permisos = list(permisos_asignables()) if codigos == "__todos__" else _resolver(codigos)
             grupo.permissions.set(permisos)
+        else:
+            # Agrega los permisos de módulos nuevos sin quitar los que CAUNE haya ajustado a mano.
+            grupo.permissions.add(*permisos)
         resultado[nombre] = creado
     return resultado

@@ -1,0 +1,39 @@
+{% extends "base.html" %}{% load caune static %}
+{% block titulo %}Recibo {{ object.numero_recibo }}{% endblock %}
+{% block encabezado %}Recibo {{ object.numero_recibo }}{% endblock %}
+{% block contenido %}
+<div class="acciones no-imprimir" style="margin-bottom:1rem;justify-content:center">
+  <a class="btn" href="{% url 'prestamos:detalle' object.prestamo.pk %}">{% icono "volver" %}Préstamo {{ object.prestamo.numero }}</a>
+  <button class="btn primario" type="button" onclick="window.print()">{% icono "imprimir" %}Imprimir</button>
+  <a class="btn" href="?formato=pdf" target="_blank">{% icono "descargar" %}Descargar PDF</a>
+  {% if object.estado == 'CONFIRMADO' and perms.prestamos.anular_pagoprestamo %}<a class="btn peligro" href="{% url 'prestamos:anular_pago' object.pk %}">Anular</a>{% endif %}
+</div>
+<div class="recibo">
+  {% if object.estado == 'ANULADO' %}<div class="sello-anulado" aria-hidden="true">ANULADO</div>{% endif %}
+  <div class="recibo-head">
+    <div class="sellado"><img src="{% static 'img/logo-caune-192.png' %}" alt="Sello de {{ coop.nombre }}" width="56" height="56">
+      <div><div class="coop">{{ coop.nombre }}</div><div class="muted small">{% if coop.rtn %}RTN {{ coop.rtn }} · {% endif %}{{ coop.direccion }}</div></div></div>
+    <div class="recibo-numero"><h2>{{ object.get_tipo_display }}</h2><b>N.º {{ object.numero_recibo }}</b><span class="small">Fecha: {{ object.fecha|fecha }}</span></div>
+  </div>
+  <dl class="datos">
+    <div><dt>Recibido de</dt><dd>{{ object.prestamo.prestatario_nombre }}</dd></div>
+    <div><dt>Préstamo</dt><dd>{{ object.prestamo.numero }}</dd></div>
+    <div><dt>Forma de pago</dt><dd>{{ object.get_metodo_pago_display }}{% if object.referencia %} · Ref. {{ object.referencia }}{% endif %}</dd></div>
+    <div><dt>Caja o cuenta</dt><dd>{{ object.cuenta_fondo.nombre }}</dd></div>
+  </dl>
+  <div class="recibo-monto" style="margin-top:1.1rem">{{ object.monto|lempiras }}</div>
+  <div class="letras">La suma de: <strong>{{ object.monto|letras }}</strong></div>
+  <table class="tabla" style="margin-bottom:1rem">
+    <thead><tr><th class="num">Cuota</th><th>Vencimiento</th><th class="num">Interés</th><th class="num">Capital</th></tr></thead>
+    <tbody>{% for a in aplicaciones %}<tr><td class="num">{{ a.cuota.numero }}</td><td>{{ a.cuota.fecha_vencimiento|fecha }}</td><td class="num">{{ a.interes|lempiras }}</td><td class="num">{{ a.capital|lempiras }}</td></tr>{% endfor %}</tbody>
+  </table>
+  <p class="small"><strong>Saldo de capital actual del préstamo:</strong> {{ r.saldo_capital|lempiras }}</p>
+  {% if object.observacion %}<p class="small"><strong>Observación:</strong> {{ object.observacion }}</p>{% endif %}
+  {% if object.estado == 'ANULADO' %}<p class="small" style="color:var(--rojo)"><strong>Anulado</strong> el {{ object.anulado_en|date:"d/m/Y H:i" }} por {{ object.anulado_por }}. Motivo: {{ object.motivo_anulacion }}</p>{% endif %}
+  <div class="firmas">
+    <div class="linea">Entregó</div>
+    {% if object.estado == 'CONFIRMADO' %}<img class="sello-confirmado" src="{% static 'img/logo-caune-192.png' %}" alt="Sello de pago confirmado" width="104" height="104">{% else %}<span></span>{% endif %}
+    <div class="linea">Recibió · {{ object.registrado_por.get_full_name|default:object.registrado_por.username }}</div>
+  </div>
+</div>
+{% endblock %}

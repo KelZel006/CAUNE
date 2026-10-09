@@ -111,6 +111,9 @@ class AfiliadoDetailView(PermisoMixin, DetailView):
             ctx["movimientos"] = self.object.movimientos.select_related("tipo", "cuenta_fondo").order_by(
                 "-fecha", "-id")[:15]
         ctx["cambios_estado"] = self.object.cambios_estado.select_related("registrado_por")
+        if usuario.has_perm("prestamos.view_prestamo"):
+            from apps.prestamos.services import anotar_saldos
+            ctx["prestamos"] = anotar_saldos(self.object.prestamos.order_by("-fecha_aprobacion"))
         return ctx
 
 

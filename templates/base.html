@@ -19,12 +19,18 @@
   </a>
   <nav class="nav">
     <a href="{% url 'core:dashboard' %}" class="{% if ns == 'core' and un == 'dashboard' %}activo{% endif %}">{% icono "inicio" %}Panel principal</a>
-    {% if perms.afiliados.view_afiliado or perms.aportaciones.view_movimientoafiliado %}<div class="grupo">Operación</div>{% endif %}
+    {% if perms.afiliados.view_afiliado or perms.aportaciones.view_movimientoafiliado or perms.prestamos.view_prestamo or perms.actividades.view_actividad %}<div class="grupo">Operación</div>{% endif %}
     {% if perms.afiliados.view_afiliado %}
       <a href="{% url 'afiliados:lista' %}" class="{% if ns == 'afiliados' %}activo{% endif %}">{% icono "afiliados" %}Afiliados</a>
     {% endif %}
     {% if perms.aportaciones.view_movimientoafiliado %}
       <a href="{% url 'aportaciones:lista' %}" class="{% if ns == 'aportaciones' and un != 'tipos' and un != 'tipo_crear' and un != 'tipo_editar' %}activo{% endif %}">{% icono "movimientos" %}Aportaciones y depósitos</a>
+    {% endif %}
+    {% if perms.prestamos.view_prestamo %}
+      <a href="{% url 'prestamos:lista' %}" class="{% if ns == 'prestamos' %}activo{% endif %}">{% icono "prestamos" %}Préstamos</a>
+    {% endif %}
+    {% if perms.actividades.view_actividad %}
+      <a href="{% url 'actividades:lista' %}" class="{% if ns == 'actividades' %}activo{% endif %}">{% icono "actividades" %}Actividades económicas</a>
     {% endif %}
     {% if perms.core.ver_reportes or perms.core.ver_auditoria %}<div class="grupo">Consulta</div>{% endif %}
     {% if perms.core.ver_reportes %}
@@ -38,7 +44,7 @@
       <a href="{% url 'core:configuracion' %}" class="{% if ns == 'core' and un != 'dashboard' and un != 'auditoria' or un == 'tipos' or un == 'tipo_crear' or un == 'tipo_editar' %}activo{% endif %}">{% icono "config" %}Configuración</a>
     {% endif %}
   </nav>
-  <div class="sidebar-pie">{{ coop.siglas|default:"CAUNE" }}{% if coop.fundacion %} · desde {{ coop.fundacion }}{% endif %}<br>Fase 1 · Administración básica</div>
+  <div class="sidebar-pie">{{ coop.siglas|default:"CAUNE" }}{% if coop.fundacion %} · desde {{ coop.fundacion }}{% endif %}<br>Fase 2 · Préstamos y actividades</div>
 </aside>
 <label for="menu-toggle" class="backdrop" aria-hidden="true"></label>
 {% endwith %}

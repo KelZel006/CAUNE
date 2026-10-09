@@ -1,0 +1,23 @@
+{% extends "base.html" %}{% load caune %}
+{% block titulo %}{{ titulo }}{% endblock %}
+{% block encabezado %}Reporte · {{ titulo }}{% endblock %}
+{% block contenido %}
+<div class="card no-imprimir">
+  <form method="get" class="filtros" style="margin:0">
+    {% for campo in form %}<div class="campo"><label for="{{ campo.id_for_label }}">{{ campo.label }}</label>{{ campo }}</div>{% endfor %}
+    {% if form.non_field_errors %}<div class="errores-form" style="grid-column:1/-1">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+    <div class="acciones"><a class="btn" href="{% url 'reportes:indice' %}">{% icono "volver" %}Reportes</a><a class="btn" href="{% url_exportar 'pdf' %}" target="_blank">{% icono "descargar" %}PDF</a><a class="btn" href="{% url_exportar 'xlsx' %}">Excel</a><button class="btn" type="button" onclick="window.print()">{% icono "imprimir" %}Imprimir</button><button class="btn primario">Filtrar</button></div>
+  </form>
+</div>
+{% if resumen %}<div class="kpis">{% for etiqueta, valor in resumen %}<div class="kpi{% if forloop.first %} destacado{% endif %}"><div class="etq">{{ etiqueta }}</div><div class="valor{% if valor|es_numero and valor < 0 %} perdida{% endif %}">{{ valor|celda }}</div></div>{% endfor %}</div>{% endif %}
+<div class="card">
+  <div class="card-head con-filete"><h2>{{ titulo }}</h2><span class="small muted">{{ subtitulo }}</span></div>
+  <div class="tabla-wrap"><table class="tabla">
+    <thead><tr>{% for e in encabezados %}<th{% if forloop.counter0 in columnas_monto %} class="num"{% endif %}>{{ e }}</th>{% endfor %}</tr></thead>
+    <tbody>{% for fila in filas %}<tr>{% for v in fila.valores %}<td{% if v|es_numero %} class="num{% if v < 0 %} perdida{% endif %}"{% endif %}>{% if forloop.first and fila.url %}<a href="{{ fila.url }}">{{ v|celda }}</a>{% else %}{{ v|celda }}{% endif %}</td>{% endfor %}</tr>
+    {% empty %}<tr><td colspan="{{ encabezados|length }}" class="vacio">Sin datos con estos criterios.</td></tr>{% endfor %}</tbody>
+    {% if totales %}<tfoot><tr>{% for v in totales %}<td{% if v|es_numero %} class="num"{% endif %}>{{ v|celda }}</td>{% endfor %}</tr></tfoot>{% endif %}
+  </table></div>
+  {% if nota %}<p class="muted small">{{ nota }}</p>{% endif %}
+</div>
+{% endblock %}

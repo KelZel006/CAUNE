@@ -1,0 +1,29 @@
+{% extends "base.html" %}{% load caune %}
+{% block titulo %}Préstamos{% endblock %}
+{% block encabezado %}Préstamos{% endblock %}
+{% block contenido %}
+<div class="card">
+  <div class="card-head">
+    <form method="get" class="buscador">
+      {% for k, v in request.GET.items %}{% if k != "q" and k != "page" %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endif %}{% endfor %}
+      {% icono "buscar" %}<input type="search" name="q" value="{{ q }}" placeholder="Buscar por número, afiliado o prestatario externo"><button class="btn">Buscar</button>
+    </form>
+    <div class="acciones">
+      {% if perms.core.ver_reportes %}<a class="btn" href="{% url 'reportes:prestamos' %}">Reportes</a>{% endif %}
+      {% if perms.prestamos.add_prestamo %}<a class="btn primario" href="{% url 'prestamos:crear' %}">{% icono "mas" %}Nuevo préstamo</a>{% endif %}
+    </div>
+  </div>
+  {% include "partials/filtros.html" %}
+  <div class="tabla-wrap"><table class="tabla">
+    <thead><tr><th>{% orden "numero" "Préstamo" %}</th><th>{% orden "fecha" "Aprobado" %}</th><th>Prestatario</th><th class="num">{% orden "monto" "Monto" %}</th><th class="num">Tasa</th><th class="num">Saldo capital</th><th>Plazo</th><th>{% orden "estado" "Estado" %}</th></tr></thead>
+    <tbody>{% for p in object_list %}
+      <tr><td><a href="{% url 'prestamos:detalle' p.pk %}"><strong>{{ p.numero }}</strong></a></td><td>{{ p.fecha_aprobacion|fecha }}</td>
+        <td>{{ p.prestatario_nombre }}{% if p.tipo_prestatario == 'EXTERNO' %} <span class="badge info">Externo</span>{% endif %}</td>
+        <td class="num">{{ p.monto_aprobado|lempiras }}</td><td class="num">{{ p.tasa|floatformat:2 }} %</td>
+        <td class="num">{% if p.estado == 'VIGENTE' or p.estado == 'PAGADO' %}{{ p.monto_aprobado|restar:p.capital_pagado|lempiras }}{% else %}—{% endif %}</td>
+        <td>{{ p.plazo }} cuotas</td><td>{% include "prestamos/_estado.html" with estado=p.estado etiqueta=p.get_estado_display %}</td></tr>
+    {% empty %}<tr><td colspan="8" class="vacio">No hay préstamos con estos criterios.</td></tr>{% endfor %}</tbody>
+  </table></div>
+  {% include "partials/paginacion.html" %}
+</div>
+{% endblock %}

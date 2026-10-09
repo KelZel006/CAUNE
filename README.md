@@ -5,8 +5,8 @@
 Sistema de gestión administrativa y financiera
 
 Aplicación web en Django 5.2 + PostgreSQL 16 para administrar afiliados, aportaciones, depósitos, préstamos,
-actividades económicas y distribución de ganancias. **Estado actual: Fase 1 (administración básica).**
-Ver [docs/FASE1.md](docs/FASE1.md) para el alcance, las decisiones y los resultados de pruebas.
+actividades económicas y distribución de ganancias. **Estado actual: Fase 2 (préstamos y actividades económicas).**
+Ver [docs/FASE1.md](docs/FASE1.md) y [docs/FASE2.md](docs/FASE2.md) para el alcance, las decisiones y los resultados de pruebas.
 
 ## Estructura
 
@@ -17,7 +17,9 @@ caune/
 │   ├── core/            Auditoría, parámetros, numeración, cajas/cuentas, usuarios y roles, panel
 │   ├── afiliados/       Afiliados, cambios de estado, estado de cuenta
 │   ├── aportaciones/    Tipos de movimiento, aportaciones/depósitos/retiros, recibos, anulación
-│   └── reportes/        Reportes 1-3 con exportación PDF y Excel
+│   ├── prestamos/       Préstamos, cuadro de amortización, desembolsos, pagos y abonos
+│   ├── actividades/     Actividades económicas, subactividades, ingresos, gastos y resultados
+│   └── reportes/        Reportes 1-9 con exportación PDF y Excel
 ├── templates/           Interfaz (HTML) y plantillas PDF
 ├── static/css/          Estilos (paleta del sello: azul marino, azul Unión, naranja Esfuerzo, dorado)
 ├── static/img/          Logo oficial y derivados (favicon, PDF)
@@ -96,11 +98,11 @@ TEST_DATABASE_URL=postgres://caune:CLAVE@localhost:5432/caune python -m pytest
 | Rol | Puede |
 |---|---|
 | Tesorero | **Acceso total**: afiliados, movimientos, recibos, reportes, auditoría, configuración, usuarios y roles |
-| Presidente | Consultar el panel financiero, afiliados, estados de cuenta y reportes. No registra ni modifica nada |
+| Presidente | Consultar el panel financiero, afiliados, estados de cuenta, préstamos, actividades y reportes. No registra ni modifica nada |
 | Administrador | Acceso total (soporte técnico) |
 | Contador o supervisor | Consultar todo, anular operaciones, auditoría y reportes. No registra movimientos |
-| Encargado de préstamos | Consultar afiliados y estados de cuenta. Recibe sus permisos de préstamos en la Fase 2 |
-| Encargado de actividades | Sin permisos todavía. Los recibe en la Fase 2 |
+| Encargado de préstamos | Registrar préstamos (sin excepciones de tasa), desembolsos y pagos; consultar afiliados y reportes |
+| Encargado de actividades | Crear actividades y subactividades, registrar ingresos y gastos, consultar reportes |
 
 > Para anular una operación hace falta una persona distinta a la que la registró (parámetro
 > `movimientos.anulacion_requiere_otro_usuario`). Con el tesorero como usuario principal, ese segundo usuario puede ser

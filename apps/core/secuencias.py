@@ -5,6 +5,10 @@ from .models import Secuencia
 SECUENCIAS_INICIALES = {
     "AF": ("Código de afiliado", 4),
     "OP": ("Operaciones de aportaciones y depósitos", 6),
+    "PREST": ("Préstamos", 4),
+    "PAG": ("Recibos de pago de préstamos", 6),
+    "ACT": ("Actividades económicas", 3),
+    "MA": ("Movimientos de actividades", 6),
 }
 
 

@@ -84,12 +84,13 @@ def test_supervisor_consulta_y_anula_pero_no_registra(client, supervisor, afilia
     assert m.estado == "ANULADO"
 
 
-def test_encargado_prestamos_solo_consulta_afiliados(client, prestamos, afiliado):
+def test_encargado_prestamos_consulta_afiliados_y_reportes(client, prestamos, afiliado):
     assert _get(client, prestamos, "afiliados:lista") == 200
     assert _get(client, prestamos, "afiliados:crear") == 403
     assert _get(client, prestamos, "afiliados:cambiar_estado", afiliado.pk) == 403
     assert _get(client, prestamos, "aportaciones:lista") == 403
-    assert _get(client, prestamos, "reportes:indice") == 403
+    assert _get(client, prestamos, "reportes:indice") == 200  # Fase 2: consulta reportes de préstamos
+    assert _get(client, prestamos, "reportes:movimientos") == 403  # pero no los de aportaciones
 
 
 def test_usuario_sin_rol_solo_ve_panel_basico(client, sin_rol):

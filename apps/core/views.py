@@ -58,6 +58,16 @@ class DashboardView(TemplateView):
                 ultimos=MovimientoAfiliado.objects.select_related("afiliado", "tipo").order_by("-registrado_en")[:8],
                 inicio_mes=inicio_mes,
             )
+            if usuario.has_perm("prestamos.view_prestamo"):
+                from apps.prestamos import services as ps
+                from apps.prestamos.models import Prestamo
+                ctx.update(ver_prestamos=True, cartera=ps.cartera_vigente(), intereses_mes=ps.intereses_cobrados(desde=inicio_mes, hasta=hoy),
+                           prestamos_vigentes=Prestamo.objects.filter(estado=Prestamo.Estado.VIGENTE).count(),
+                           por_desembolsar=Prestamo.objects.filter(estado=Prestamo.Estado.APROBADO).count())
+            if usuario.has_perm("actividades.view_actividad"):
+                from apps.actividades import services as acs
+                ctx["actividades_anio"] = acs.resultado_general(desde=hoy.replace(month=1, day=1), hasta=hoy)
+                ctx["anio"] = hoy.year
         return ctx
 
 

@@ -1,13 +1,14 @@
-{% extends "base.html" %}
+{% extends "base.html" %}{% load caune %}
 {% block titulo %}Reportes{% endblock %}
 {% block encabezado %}Reportes{% endblock %}
 {% block contenido %}
-<div class="grid-config">
-  {% if perms.afiliados.view_afiliado %}<a class="card" href="{% url 'reportes:afiliados' %}"><h3>1. Listado de afiliados</h3><p>Datos, estado y saldos por afiliado. PDF y Excel.</p></a>{% endif %}
-  {% if perms.aportaciones.view_movimientoafiliado %}<a class="card" href="{% url 'reportes:movimientos' %}"><h3>3. Aportaciones y depósitos</h3><p>Movimientos por período, afiliado, tipo, método o caja, con totales. PDF y Excel.</p></a>{% endif %}
+<h2>Afiliados y aportaciones</h2>
+<div class="grid-config" style="margin-bottom:1.35rem">
+  {% if perms.afiliados.view_afiliado %}<a class="card" href="{% url 'reportes:afiliados' %}">{% icono "afiliados" %}<div><h3>1. Listado de afiliados</h3><p>Datos, estado y saldos por afiliado.</p></div></a>{% endif %}
+  {% if perms.aportaciones.view_movimientoafiliado %}<a class="card" href="{% url 'reportes:movimientos' %}">{% icono "movimientos" %}<div><h3>3. Aportaciones y depósitos</h3><p>Movimientos por período, afiliado, tipo o caja, con totales.</p></div></a>{% endif %}
 </div>
 {% if perms.afiliados.ver_estado_cuenta %}
-<div class="card" style="margin-top:1.25rem">
+<div class="card">
   <h2>2. Estado de cuenta por afiliado</h2>
   <form method="get" action="{% url 'reportes:estado_cuenta' %}" class="filtros" style="margin:0">
     <div class="campo"><label for="ec-af">Afiliado</label><select id="ec-af" name="afiliado" required><option value="">Seleccione…</option>{% for a in afiliados %}<option value="{{ a.pk }}">{{ a.codigo }} · {{ a.nombre_completo }}{% if not a.activo %} (inactivo){% endif %}</option>{% endfor %}</select></div>
@@ -17,5 +18,28 @@
   </form>
 </div>
 {% endif %}
-<p class="muted small">Los reportes 4 a 14 (préstamos, actividades, distribuciones, caja, bancos y resumen financiero) se agregarán en las fases 2 y 3.</p>
+{% if perms.prestamos.view_prestamo %}
+<h2>Préstamos</h2>
+<div class="grid-config" style="margin-bottom:1.35rem">
+  <a class="card" href="{% url 'reportes:prestamos' %}">{% icono "prestamos" %}<div><h3>4. Préstamos otorgados</h3><p>Por período, tipo de prestatario y estado, con saldos.</p></div></a>
+  {% if perms.prestamos.view_pagoprestamo %}<a class="card" href="{% url 'reportes:pagos' %}">{% icono "recibo" %}<div><h3>6. Pagos recibidos</h3><p>Distribución de cada pago entre capital e intereses.</p></div></a>{% endif %}
+  <a class="card" href="{% url 'reportes:saldos' %}">{% icono "cuentas" %}<div><h3>7. Saldos pendientes</h3><p>Capital, intereses pendientes y próximo vencimiento.</p></div></a>
+</div>
+<div class="card">
+  <h2>5. Cuadro de amortización</h2>
+  <form method="get" action="{% url 'reportes:cuadro' %}" class="filtros" style="margin:0">
+    <div class="campo"><label for="cu-p">Préstamo</label><select id="cu-p" name="prestamo" required><option value="">Seleccione…</option>{% for p in prestamos %}<option value="{{ p.pk }}">{{ p.numero }} · {{ p.prestatario_nombre }} ({{ p.get_estado_display }})</option>{% endfor %}</select></div>
+    <div class="campo"><label for="cu-f">Formato</label><select id="cu-f" name="formato"><option value="">En pantalla</option><option value="pdf">PDF</option><option value="xlsx">Excel</option></select></div>
+    <div class="acciones"><button class="btn primario" type="submit">Abrir cuadro</button></div>
+  </form>
+</div>
+{% endif %}
+{% if perms.actividades.view_actividad %}
+<h2>Actividades económicas</h2>
+<div class="grid-config" style="margin-bottom:1.35rem">
+  {% if perms.actividades.view_movimientoactividad %}<a class="card" href="{% url 'reportes:actividades' %}">{% icono "actividades" %}<div><h3>8. Ingresos y gastos</h3><p>Detalle por actividad, subactividad y período.</p></div></a>{% endif %}
+  <a class="card" href="{% url 'reportes:resultados_actividades' %}">{% icono "reportes" %}<div><h3>9. Ganancias y pérdidas</h3><p>Resultado neto por actividad y subactividad.</p></div></a>
+</div>
+{% endif %}
+<p class="muted small">Los reportes 10 a 14 (ganancias por afiliado, distribuciones, caja y bancos, flujo de efectivo y resumen financiero) se agregarán en la Fase 3.</p>
 {% endblock %}

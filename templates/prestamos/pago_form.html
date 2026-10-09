@@ -1,0 +1,17 @@
+{% extends "base.html" %}{% load caune %}
+{% block titulo %}Pago {{ p.numero }}{% endblock %}
+{% block encabezado %}Registrar pago · {{ p.numero }}{% endblock %}
+{% block contenido %}
+<div class="kpis" style="max-width:980px">
+  <div class="kpi destacado"><div class="etq">Saldo de capital</div><div class="valor">{{ r.saldo_capital|lempiras }}</div></div>
+  <div class="kpi"><div class="etq">Próxima cuota</div>{% if r.proxima %}<div class="valor">{{ r.proxima.pendiente|lempiras }}</div><div class="det">N.º {{ r.proxima.cuota.numero }} · vence {{ r.proxima.cuota.fecha_vencimiento|fecha }}</div>{% else %}<div class="valor">—</div>{% endif %}</div>
+  <div class="kpi deposito"><div class="etq">Total pendiente</div><div class="valor">{{ r.total_pendiente|lempiras }}</div><div class="det">Intereses: {{ r.intereses_pendientes|lempiras }}</div></div>
+</div>
+<div class="card" style="max-width:980px">
+  <p class="nota">Un <strong>pago de cuota</strong> cubre primero el interés y luego el capital, cuota por cuota (se aceptan pagos parciales). Un <strong>abono extraordinario</strong> va solo a capital de las cuotas siguientes y no modifica el cuadro: sus intereses siguen venciendo en su fecha.</p>
+  <form method="post" novalidate onsubmit="var b=this.querySelector('button[type=submit]');b.disabled=true;b.textContent='Guardando…';">{% csrf_token %}
+    {% include "partials/campos.html" %}
+    <div class="form-pie"><a class="btn" href="{% url 'prestamos:detalle' p.pk %}">Cancelar</a><button class="btn primario" type="submit">Confirmar y registrar</button></div>
+  </form>
+</div>
+{% endblock %}

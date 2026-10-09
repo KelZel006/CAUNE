@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block titulo %}Estado de {{ actividad.codigo }}{% endblock %}
+{% block encabezado %}{% if actividad.activa %}Cerrar{% else %}Reabrir{% endif %} actividad {{ actividad.codigo }}{% endblock %}
+{% block contenido %}
+<div class="card" style="max-width:760px">
+  <p>{% if actividad.activa %}Una actividad cerrada conserva su historial y sus resultados, pero no admite nuevos ingresos ni gastos.{% else %}La actividad volverá a admitir ingresos y gastos.{% endif %}</p>
+  <form method="post" novalidate>{% csrf_token %}
+    {% include "partials/campos.html" %}
+    <div class="form-pie"><a class="btn" href="{% url 'actividades:detalle' actividad.pk %}">Cancelar</a><button class="btn primario" type="submit">Confirmar</button></div>
+  </form>
+</div>
+{% endblock %}

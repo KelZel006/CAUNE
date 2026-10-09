@@ -33,7 +33,7 @@
         <div><dt>Registro creado</dt><dd class="small">{{ object.creado_en|date:"d/m/Y H:i" }} · {{ object.creado_por }}</dd></div>
       </dl>
     </div>
-    {% if movimientos is not None %}
+    {% if perms.aportaciones.view_movimientoafiliado %}
     <div class="card">
       <div class="card-head"><h2>Movimientos recientes</h2><a class="btn sm" href="{% url 'aportaciones:lista' %}?afiliado={{ object.pk }}">Ver historial completo</a></div>
       <div class="tabla-wrap"><table class="tabla">
@@ -51,7 +51,15 @@
         <li><strong>{{ c.get_estado_anterior_display }} → {{ c.get_estado_nuevo_display }}</strong> desde el {{ c.fecha_efectiva|fecha }}<div class="muted small">{{ c.motivo }}</div><div class="muted small">{{ c.registrado_por }} · {{ c.registrado_en|date:"d/m/Y H:i" }}</div></li>
       {% empty %}<li class="muted">Sin cambios de estado desde su ingreso.</li>{% endfor %}</ul>
     </div>
-    <div class="card"><h2>Próximas fases</h2><p class="muted small" style="margin:0">Los préstamos, pagos y ganancias del afiliado se mostrarán aquí cuando se implementen las fases 2 y 3.</p></div>
+    {% if perms.prestamos.view_prestamo %}
+    <div class="card"><div class="card-head"><h2>Préstamos</h2>{% if perms.prestamos.add_prestamo and object.activo %}<a class="btn sm" href="{% url 'prestamos:crear' %}?afiliado={{ object.pk }}">{% icono "mas" %}Nuevo</a>{% endif %}</div>
+      <ul class="lista-simple">{% for p in prestamos %}
+        <li><a href="{% url 'prestamos:detalle' p.pk %}"><strong>{{ p.numero }}</strong></a> · {{ p.monto_aprobado|lempiras }} · {{ p.get_estado_display }}
+          {% if p.estado == 'VIGENTE' %}<div class="small muted">Saldo de capital {{ p.monto_aprobado|restar:p.capital_pagado|lempiras }}</div>{% endif %}</li>
+      {% empty %}<li class="muted">Sin préstamos.</li>{% endfor %}</ul>
+    </div>
+    {% endif %}
+    <div class="card"><h2>Próxima fase</h2><p class="muted small" style="margin:0">Las ganancias distribuidas al afiliado se mostrarán aquí cuando se implemente la Fase 3.</p></div>
   </div>
 </div>
 {% endblock %}

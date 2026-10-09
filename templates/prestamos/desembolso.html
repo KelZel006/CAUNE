@@ -1,0 +1,12 @@
+{% extends "base.html" %}{% load caune %}
+{% block titulo %}Desembolso {{ p.numero }}{% endblock %}
+{% block encabezado %}Desembolso del préstamo {{ p.numero }}{% endblock %}
+{% block contenido %}
+<div class="card" style="max-width:820px">
+  <p class="nota">Va a registrar la entrega de <strong>{{ p.monto_aprobado|lempiras }}</strong> a {{ p.prestatario_nombre }}. El cuadro aprobado no cambia; el desembolso debe ser anterior al primer vencimiento ({{ p.fecha_primer_vencimiento|fecha }}).</p>
+  <form method="post" novalidate>{% csrf_token %}
+    {% include "partials/campos.html" %}
+    <div class="form-pie"><a class="btn" href="{% url 'prestamos:detalle' p.pk %}">Cancelar</a><button class="btn primario" type="submit">Registrar desembolso</button></div>
+  </form>
+</div>
+{% endblock %}

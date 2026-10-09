@@ -1,0 +1,13 @@
+{% extends "pdf/base_pdf.html" %}{% load caune %}
+{% block orientacion %}landscape{% endblock %}
+{% block titulo %}{{ titulo }}{% endblock %}
+{% block contenido %}
+{% if subtitulo %}<p class="muted">{{ subtitulo }}</p>{% endif %}
+{% if resumen %}<table style="margin-bottom:8px"><tr>{% for etiqueta, valor in resumen %}<td>{{ etiqueta }}: <b>{{ valor|celda }}</b></td>{% endfor %}</tr></table>{% endif %}
+<table>
+  <thead><tr>{% for e in encabezados %}<th{% if forloop.counter0 in columnas_monto %} class="num"{% endif %}>{{ e }}</th>{% endfor %}</tr></thead>
+  <tbody>{% for fila in filas %}<tr>{% for v in fila.valores %}<td{% if v|es_numero %} class="num"{% endif %}>{{ v|celda }}</td>{% endfor %}</tr>{% endfor %}</tbody>
+  {% if totales %}<tfoot><tr>{% for v in totales %}<td{% if v|es_numero %} class="num"{% endif %}>{{ v|celda }}</td>{% endfor %}</tr></tfoot>{% endif %}
+</table>
+{% if nota %}<p class="muted">{{ nota }}</p>{% endif %}
+{% endblock %}

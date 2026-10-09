@@ -1,0 +1,12 @@
+{% extends "base.html" %}{% load caune %}
+{% block titulo %}Anular {{ pago.numero_recibo }}{% endblock %}
+{% block encabezado %}Anular pago {{ pago.numero_recibo }}{% endblock %}
+{% block contenido %}
+<div class="card" style="max-width:760px">
+  <div class="aviso-anulado">El pago de {{ pago.monto|lempiras }} del {{ pago.fecha|fecha }} al préstamo {{ pago.prestamo.numero }} dejará de aplicarse a sus cuotas. Solo puede anularse el último pago del préstamo y debe hacerlo una persona distinta a quien lo registró.</div>
+  <form method="post" novalidate>{% csrf_token %}
+    {% include "partials/campos.html" %}
+    <div class="form-pie"><a class="btn" href="{% url 'prestamos:pago_detalle' pago.pk %}">Cancelar</a><button class="btn peligro" type="submit">Anular pago</button></div>
+  </form>
+</div>
+{% endblock %}
