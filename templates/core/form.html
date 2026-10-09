@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block titulo %}{{ titulo }}{% endblock %}
+{% block encabezado %}{{ titulo }}{% endblock %}
+{% block contenido %}
+<div class="card" style="max-width:900px">
+  <form method="post" novalidate>{% csrf_token %}
+    {% include "partials/campos.html" %}
+    <div class="form-pie">{% if cancelar_url %}<a class="btn" href="{{ cancelar_url }}">Cancelar</a>{% endif %}<button class="btn primario" type="submit">Guardar</button></div>
+  </form>
+</div>
+{% endblock %}

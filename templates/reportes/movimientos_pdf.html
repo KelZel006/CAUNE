@@ -1,0 +1,18 @@
+{% extends "pdf/base_pdf.html" %}{% load caune %}
+{% block orientacion %}landscape{% endblock %}
+{% block titulo %}Aportaciones y depósitos{% endblock %}
+{% block contenido %}
+<table style="margin-bottom:8px"><tr>
+  <td>Neto aportaciones: <b>{{ neto.aportaciones|lempiras }}</b></td>
+  <td>Neto depósitos: <b>{{ neto.depositos|lempiras }}</b></td>
+  <td>Anuladas (no suman): <b>{{ anulados.n }}</b> · {{ anulados.total|lempiras }}</td>
+</tr></table>
+<table style="margin-bottom:10px">
+  <thead><tr><th>Tipo</th><th class="num">Operaciones</th><th class="num">Total</th></tr></thead>
+  <tbody>{% for r in resumen %}<tr><td>{{ r.tipo__nombre }}</td><td class="num">{{ r.cantidad }}</td><td class="num">{{ r.total|lempiras }}</td></tr>{% endfor %}</tbody>
+</table>
+<table>
+  <thead><tr><th>Operación</th><th>Fecha</th><th>Afiliado</th><th>Tipo</th><th>Método</th><th>Caja/cuenta</th><th>Ref.</th><th class="num">Monto</th><th>Estado</th></tr></thead>
+  <tbody>{% for m in movimientos %}<tr class="{% if m.estado == 'ANULADO' %}anulado{% endif %}"><td>{{ m.numero_operacion }}</td><td>{{ m.fecha|fecha }}</td><td>{{ m.afiliado.codigo }} · {{ m.afiliado.nombre_completo }}</td><td>{{ m.tipo.nombre }}</td><td>{{ m.get_metodo_pago_display }}</td><td>{{ m.cuenta_fondo.nombre }}</td><td>{{ m.referencia }}</td><td class="num">{{ m.monto_con_signo|lempiras }}</td><td>{{ m.get_estado_display }}</td></tr>{% endfor %}</tbody>
+</table>
+{% endblock %}

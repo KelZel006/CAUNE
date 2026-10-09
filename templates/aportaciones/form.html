@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block titulo %}Registrar movimiento{% endblock %}
+{% block encabezado %}Registrar aportación, depósito o retiro{% endblock %}
+{% block contenido %}
+<div class="card" style="max-width:900px">
+  <p class="muted small" style="margin-top:0">Una vez guardada, la operación queda confirmada y no puede editarse ni eliminarse. Si hubo un error, un supervisor debe anularla con su motivo.</p>
+  <form method="post" novalidate onsubmit="var b=this.querySelector('button[type=submit]');b.disabled=true;b.textContent='Guardando…';">{% csrf_token %}
+    {% include "partials/campos.html" %}
+    <div class="form-pie"><a class="btn" href="{% url 'aportaciones:lista' %}">Cancelar</a>
+      <button class="btn primario" type="submit">Confirmar y registrar</button></div>
+  </form>
+</div>
+{% endblock %}

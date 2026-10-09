@@ -1,0 +1,28 @@
+{% extends "base.html" %}{% load caune %}
+{% block titulo %}Aportaciones y depósitos{% endblock %}
+{% block encabezado %}Aportaciones y depósitos{% endblock %}
+{% block contenido %}
+<div class="card">
+  <div class="card-head">
+    <form method="get" class="buscador">
+      {% for k, v in request.GET.items %}{% if k != "q" and k != "page" %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endif %}{% endfor %}
+      {% icono "buscar" %}<input type="search" name="q" value="{{ q }}" placeholder="Buscar por operación, afiliado o referencia"><button class="btn">Buscar</button>
+    </form>
+    <div class="acciones">
+      {% if perms.core.ver_reportes %}<a class="btn" href="{% url 'reportes:movimientos' %}?{{ params_sin_pagina }}">Reporte con totales</a>{% endif %}
+      {% if perms.aportaciones.add_movimientoafiliado %}<a class="btn primario" href="{% url 'aportaciones:crear' %}">{% icono "mas" %}Registrar movimiento</a>{% endif %}
+    </div>
+  </div>
+  {% include "partials/filtros.html" %}
+  <div class="tabla-wrap"><table class="tabla">
+    <thead><tr><th>{% orden "numero" "Operación" %}</th><th>{% orden "fecha" "Fecha" %}</th><th class="num">{% orden "monto" "Monto" %}</th><th>{% orden "tipo" "Tipo" %}</th><th>{% orden "afiliado" "Afiliado" %}</th><th>Método</th><th>Caja/cuenta</th><th>Estado</th></tr></thead>
+    <tbody>{% for m in object_list %}
+      <tr class="{% if m.estado == 'ANULADO' %}anulado{% endif %}">
+        <td class="sin-tachar"><a href="{% url 'aportaciones:detalle' m.pk %}"><strong>{{ m.numero_operacion }}</strong></a></td><td>{{ m.fecha|fecha }}</td><td class="num">{{ m.monto_con_signo|lempiras }}</td><td><span class="tipo tipo-{{ m.tipo.clase|lower }}">{{ m.tipo.nombre }}</span></td>
+        <td>{{ m.afiliado.codigo }} · {{ m.afiliado.nombre_completo }}</td><td class="small">{{ m.get_metodo_pago_display }}</td><td class="small">{{ m.cuenta_fondo.nombre }}</td>
+        <td class="sin-tachar">{% if m.estado == 'ANULADO' %}<span class="badge mal">Anulado</span>{% else %}<span class="badge ok">Confirmado</span>{% endif %}</td></tr>
+    {% empty %}<tr><td colspan="8" class="vacio">No hay movimientos con estos criterios.</td></tr>{% endfor %}</tbody>
+  </table></div>
+  {% include "partials/paginacion.html" %}
+</div>
+{% endblock %}

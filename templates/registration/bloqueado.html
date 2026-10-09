@@ -1,0 +1,8 @@
+{% load static %}<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Acceso bloqueado · CAUNE</title><link rel="stylesheet" href="{% static 'css/caune.css' %}"></head>
+<body><div class="login"><div class="card">
+  <div class="marca"><strong>CAUNE</strong></div>
+  <div class="errores-form">Se bloqueó temporalmente el acceso por demasiados intentos fallidos. Intente de nuevo en una hora o comuníquese con el administrador.</div>
+  <a class="btn" href="{% url 'login' %}">Volver</a>
+</div></div></body></html>

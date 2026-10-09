@@ -1,0 +1,63 @@
+{% load static caune %}<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#13284b">
+  <title>{% block titulo %}Inicio{% endblock %} · {{ coop.siglas|default:"CAUNE" }}</title>
+  <link rel="icon" type="image/png" href="{% static 'img/favicon-64.png' %}">
+  <link rel="stylesheet" href="{% static 'css/caune.css' %}">
+</head>
+<body>
+{% include "partials/iconos.html" %}
+{% with ns=request.resolver_match.namespace un=request.resolver_match.url_name %}
+<input type="checkbox" id="menu-toggle" hidden>
+<aside class="sidebar" aria-label="Menú principal">
+  <a class="brand" href="{% url 'core:dashboard' %}">
+    <img src="{% static 'img/logo-caune-192.png' %}" alt="Sello de {{ coop.nombre }}" width="64" height="64">
+    <span class="brand-texto"><strong>{{ coop.siglas|default:"CAUNE" }}</strong><span>{{ coop.nombre }}</span></span>
+  </a>
+  <nav class="nav">
+    <a href="{% url 'core:dashboard' %}" class="{% if ns == 'core' and un == 'dashboard' %}activo{% endif %}">{% icono "inicio" %}Panel principal</a>
+    {% if perms.afiliados.view_afiliado or perms.aportaciones.view_movimientoafiliado %}<div class="grupo">Operación</div>{% endif %}
+    {% if perms.afiliados.view_afiliado %}
+      <a href="{% url 'afiliados:lista' %}" class="{% if ns == 'afiliados' %}activo{% endif %}">{% icono "afiliados" %}Afiliados</a>
+    {% endif %}
+    {% if perms.aportaciones.view_movimientoafiliado %}
+      <a href="{% url 'aportaciones:lista' %}" class="{% if ns == 'aportaciones' and un != 'tipos' and un != 'tipo_crear' and un != 'tipo_editar' %}activo{% endif %}">{% icono "movimientos" %}Aportaciones y depósitos</a>
+    {% endif %}
+    {% if perms.core.ver_reportes or perms.core.ver_auditoria %}<div class="grupo">Consulta</div>{% endif %}
+    {% if perms.core.ver_reportes %}
+      <a href="{% url 'reportes:indice' %}" class="{% if ns == 'reportes' %}activo{% endif %}">{% icono "reportes" %}Reportes</a>
+    {% endif %}
+    {% if perms.core.ver_auditoria %}
+      <a href="{% url 'core:auditoria' %}" class="{% if un == 'auditoria' %}activo{% endif %}">{% icono "auditoria" %}Auditoría</a>
+    {% endif %}
+    {% if perms.core.view_parametro or perms.core.view_cuentafondo or perms.aportaciones.view_tipomovimiento or perms.core.gestionar_usuarios or perms.core.gestionar_roles %}
+      <div class="grupo">Administración</div>
+      <a href="{% url 'core:configuracion' %}" class="{% if ns == 'core' and un != 'dashboard' and un != 'auditoria' or un == 'tipos' or un == 'tipo_crear' or un == 'tipo_editar' %}activo{% endif %}">{% icono "config" %}Configuración</a>
+    {% endif %}
+  </nav>
+  <div class="sidebar-pie">{{ coop.siglas|default:"CAUNE" }}{% if coop.fundacion %} · desde {{ coop.fundacion }}{% endif %}<br>Fase 1 · Administración básica</div>
+</aside>
+<label for="menu-toggle" class="backdrop" aria-hidden="true"></label>
+{% endwith %}
+<div class="main">
+  <header class="topbar">
+    <label for="menu-toggle" class="menu-btn" aria-label="Abrir menú">{% icono "menu" %}</label>
+    <h1>{% block encabezado %}{% endblock %}</h1>
+    <div class="usuario">
+      <span class="nombre"><span class="avatar" aria-hidden="true">{{ user|iniciales }}</span><span>{{ user.get_full_name|default:user.username }}</span></span>
+      <a href="{% url 'password_change' %}" class="btn enlace small" title="Cambiar contraseña">{% icono "llave" %}<span class="ocultar-movil">Contraseña</span></a>
+      <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="btn sm" type="submit">{% icono "salir" %}Salir</button></form>
+    </div>
+  </header>
+  <main class="content">
+    {% if messages %}
+      <ul class="alertas">{% for m in messages %}<li class="alerta {{ m.tags }}" role="status">{{ m }}</li>{% endfor %}</ul>
+    {% endif %}
+    {% block contenido %}{% endblock %}
+  </main>
+</div>
+</body>
+</html>

@@ -1,0 +1,57 @@
+{% extends "base.html" %}{% load caune %}
+{% block titulo %}{{ object.codigo }}{% endblock %}
+{% block encabezado %}{{ object.codigo }} · {{ object.nombre_completo }}{% endblock %}
+{% block contenido %}
+<div class="acciones no-imprimir" style="margin-bottom:1rem">
+  <a class="btn" href="{% url 'afiliados:lista' %}">{% icono "volver" %}Afiliados</a>
+  {% if perms.aportaciones.add_movimientoafiliado and object.activo %}<a class="btn primario" href="{% url 'aportaciones:crear' %}?afiliado={{ object.pk }}">{% icono "mas" %}Registrar movimiento</a>{% endif %}
+  {% if perms.afiliados.ver_estado_cuenta %}<a class="btn" href="{% url 'afiliados:estado_cuenta' object.pk %}">Estado de cuenta</a>{% endif %}
+  {% if perms.afiliados.change_afiliado %}<a class="btn" href="{% url 'afiliados:editar' object.pk %}">Editar datos</a>{% endif %}
+  {% if perms.afiliados.cambiar_estado_afiliado %}<a class="btn{% if object.activo %} peligro{% endif %}" href="{% url 'afiliados:cambiar_estado' object.pk %}">{% if object.activo %}Inactivar{% else %}Reactivar{% endif %}</a>{% endif %}
+</div>
+
+{% if saldos %}
+<div class="kpis">
+  <div class="kpi destacado"><div class="etq">Saldo total</div><div class="valor">{{ saldos.total|lempiras }}</div></div>
+  <div class="kpi aportacion"><div class="etq">Aportaciones</div><div class="valor">{{ saldos.aportaciones|lempiras }}</div><div class="det">Capital no retirable</div></div>
+  <div class="kpi deposito"><div class="etq">Depósitos reembolsables</div><div class="valor">{{ saldos.depositos|lempiras }}</div><div class="det">Disponible para retiro</div></div>
+</div>
+{% endif %}
+
+<div class="cols-2">
+  <div>
+    <div class="card">
+      <div class="card-head"><h2>Datos del afiliado</h2>{% if object.activo %}<span class="badge ok">Activo</span>{% else %}<span class="badge off">Inactivo</span>{% endif %}</div>
+      <dl class="datos">
+        <div><dt>Código</dt><dd>{{ object.codigo }}</dd></div>
+        <div><dt>Identidad</dt><dd>{{ object.identidad|identidad }}</dd></div>
+        <div><dt>Nombres</dt><dd>{{ object.nombres }}</dd></div>
+        <div><dt>Apellidos</dt><dd>{{ object.apellidos }}</dd></div>
+        <div><dt>Teléfono</dt><dd>{{ object.telefono|default:"—" }}</dd></div>
+        <div><dt>Fecha de ingreso</dt><dd>{{ object.fecha_ingreso|fecha }}</dd></div>
+        <div style="grid-column:1/-1"><dt>Dirección</dt><dd>{{ object.direccion|default:"—" }}</dd></div>
+        <div><dt>Registro creado</dt><dd class="small">{{ object.creado_en|date:"d/m/Y H:i" }} · {{ object.creado_por }}</dd></div>
+      </dl>
+    </div>
+    {% if movimientos is not None %}
+    <div class="card">
+      <div class="card-head"><h2>Movimientos recientes</h2><a class="btn sm" href="{% url 'aportaciones:lista' %}?afiliado={{ object.pk }}">Ver historial completo</a></div>
+      <div class="tabla-wrap"><table class="tabla">
+        <thead><tr><th>Operación</th><th>Fecha</th><th>Tipo</th><th class="num">Monto</th><th>Estado</th></tr></thead>
+        <tbody>{% for m in movimientos %}<tr class="{% if m.estado == 'ANULADO' %}anulado{% endif %}"><td><a href="{% url 'aportaciones:detalle' m.pk %}">{{ m.numero_operacion }}</a></td><td>{{ m.fecha|fecha }}</td><td><span class="tipo tipo-{{ m.tipo.clase|lower }}">{{ m.tipo.nombre }}</span></td><td class="num">{{ m.monto_con_signo|lempiras }}</td>
+          <td class="sin-tachar">{% if m.estado == 'ANULADO' %}<span class="badge mal">Anulado</span>{% else %}<span class="badge ok">Confirmado</span>{% endif %}</td></tr>
+        {% empty %}<tr><td colspan="5" class="vacio">Sin movimientos.</td></tr>{% endfor %}</tbody>
+      </table></div>
+    </div>
+    {% endif %}
+  </div>
+  <div>
+    <div class="card"><h2>Historial de estado</h2>
+      <ul class="lista-simple">{% for c in cambios_estado %}
+        <li><strong>{{ c.get_estado_anterior_display }} → {{ c.get_estado_nuevo_display }}</strong> desde el {{ c.fecha_efectiva|fecha }}<div class="muted small">{{ c.motivo }}</div><div class="muted small">{{ c.registrado_por }} · {{ c.registrado_en|date:"d/m/Y H:i" }}</div></li>
+      {% empty %}<li class="muted">Sin cambios de estado desde su ingreso.</li>{% endfor %}</ul>
+    </div>
+    <div class="card"><h2>Próximas fases</h2><p class="muted small" style="margin:0">Los préstamos, pagos y ganancias del afiliado se mostrarán aquí cuando se implementen las fases 2 y 3.</p></div>
+  </div>
+</div>
+{% endblock %}

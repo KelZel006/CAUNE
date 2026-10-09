@@ -1,0 +1,11 @@
+{% extends "base.html" %}{% load caune %}
+{% block titulo %}Recibo {{ object.numero_operacion }}{% endblock %}
+{% block encabezado %}Recibo {{ object.numero_operacion }}{% endblock %}
+{% block contenido %}
+<div class="acciones no-imprimir" style="margin-bottom:1rem;justify-content:center">
+  <a class="btn" href="{% url 'aportaciones:detalle' object.pk %}">{% icono "volver" %}Operación</a>
+  <button class="btn primario" type="button" onclick="window.print()">{% icono "imprimir" %}Imprimir</button>
+  <a class="btn" href="?formato=pdf" target="_blank">{% icono "descargar" %}Descargar PDF</a>
+</div>
+{% include "aportaciones/_recibo_cuerpo.html" with m=object %}
+{% endblock %}

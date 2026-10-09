@@ -1,0 +1,10 @@
+.env
+*.sqlite3
+__pycache__/
+*.pyc
+.venv/
+staticfiles/
+respaldos/
+.pytest_cache/
+.impeccable/review/
+.impeccable/config.local.json

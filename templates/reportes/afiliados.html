@@ -1,0 +1,18 @@
+{% extends "base.html" %}{% load caune %}
+{% block titulo %}Listado de afiliados{% endblock %}
+{% block encabezado %}Reporte · Listado de afiliados{% endblock %}
+{% block contenido %}
+<div class="card">
+  <form method="get" class="filtros no-imprimir">
+    {% for campo in form %}<div class="campo"><label for="{{ campo.id_for_label }}">{{ campo.label }}</label>{{ campo }}</div>{% endfor %}
+    <div class="acciones"><a class="btn" href="{% url 'reportes:indice' %}">‹ Reportes</a><a class="btn" href="{% url_exportar 'pdf' %}" target="_blank">PDF</a><a class="btn" href="{% url_exportar 'xlsx' %}">Excel</a><button class="btn" type="button" onclick="window.print()">Imprimir</button><button class="btn primario">Filtrar</button></div>
+  </form>
+  <div class="tabla-wrap"><table class="tabla">
+    <thead><tr><th>Código</th><th>Nombre</th><th>Identidad</th><th>Teléfono</th><th>Ingreso</th><th>Estado</th>{% if ver_saldos %}<th class="num">Aportaciones</th><th class="num">Depósitos</th><th class="num">Total</th>{% endif %}</tr></thead>
+    <tbody>{% for a in afiliados %}<tr><td>{{ a.codigo }}</td><td>{{ a.apellidos }}, {{ a.nombres }}</td><td class="nowrap">{{ a.identidad|identidad }}</td><td>{{ a.telefono|default:"—" }}</td><td>{{ a.fecha_ingreso|fecha }}</td><td>{{ a.get_estado_display }}</td>
+      {% if ver_saldos %}<td class="num">{{ a.saldo_aportaciones|lempiras }}</td><td class="num">{{ a.saldo_depositos|lempiras }}</td><td class="num">{{ a.saldo_total|lempiras }}</td>{% endif %}</tr>
+    {% empty %}<tr><td colspan="9" class="vacio">Sin afiliados.</td></tr>{% endfor %}</tbody>
+    {% if ver_saldos %}<tfoot><tr><td colspan="6">{{ afiliados|length }} afiliado{{ afiliados|length|pluralize }}</td><td class="num">{{ totales.aportaciones|lempiras }}</td><td class="num">{{ totales.depositos|lempiras }}</td><td class="num">{{ totales.total|lempiras }}</td></tr></tfoot>{% endif %}
+  </table></div>
+</div>
+{% endblock %}

@@ -1,0 +1,26 @@
+{% extends "base.html" %}{% load caune static %}
+{% block titulo %}Panel principal{% endblock %}
+{% block encabezado %}Panel principal{% endblock %}
+{% block contenido %}
+{% if financiero %}
+<div class="kpis">
+  <div class="kpi destacado aportacion"><div class="etq">Aportaciones acumuladas</div><div class="valor">{{ totales.aportaciones|lempiras }}</div><div class="det">Al cierre del mes anterior: {{ totales_mes_anterior.aportaciones|lempiras }}</div></div>
+  <div class="kpi deposito"><div class="etq">Depósitos reembolsables</div><div class="valor">{{ totales.depositos|lempiras }}</div><div class="det">Al cierre del mes anterior: {{ totales_mes_anterior.depositos|lempiras }}</div></div>
+  <div class="kpi"><div class="etq">Afiliados activos</div><div class="valor">{{ afiliados_activos }}</div><div class="det">{{ afiliados_inactivos }} inactivo{{ afiliados_inactivos|pluralize }}</div></div>
+  <div class="kpi"><div class="etq">Operaciones del mes</div><div class="valor">{{ movimientos_mes }}</div><div class="det">Desde el {{ inicio_mes|fecha }}</div></div>
+</div>
+<div class="card">
+  <div class="card-head con-filete"><h2>Últimas operaciones registradas</h2>
+    <div class="acciones">{% if perms.aportaciones.add_movimientoafiliado %}<a class="btn primario" href="{% url 'aportaciones:crear' %}">{% icono "mas" %}Registrar movimiento</a>{% endif %}<a class="btn" href="{% url 'aportaciones:lista' %}">Ver todas</a></div></div>
+  <div class="tabla-wrap"><table class="tabla">
+    <thead><tr><th>Operación</th><th>Fecha</th><th class="num">Monto</th><th>Tipo</th><th>Afiliado</th><th>Estado</th></tr></thead>
+    <tbody>{% for m in ultimos %}
+      <tr class="{% if m.estado == 'ANULADO' %}anulado{% endif %}"><td><a href="{% url 'aportaciones:detalle' m.pk %}">{{ m.numero_operacion }}</a></td><td>{{ m.fecha|fecha }}</td><td class="num">{{ m.monto_con_signo|lempiras }}</td><td><span class="tipo tipo-{{ m.tipo.clase|lower }}">{{ m.tipo.nombre }}</span></td><td>{{ m.afiliado.codigo }} · {{ m.afiliado.nombre_completo }}</td><td class="sin-tachar">{% if m.estado == 'ANULADO' %}<span class="badge mal">Anulado</span>{% else %}<span class="badge ok">Confirmado</span>{% endif %}</td></tr>
+    {% empty %}<tr><td colspan="6" class="vacio">Aún no hay operaciones registradas.</td></tr>{% endfor %}</tbody>
+  </table></div>
+</div>
+{% else %}
+<div class="card sellado"><img src="{% static 'img/logo-caune-192.png' %}" alt="" width="56" height="56"><div><h2>Bienvenido, {{ user.get_full_name|default:user.username }}</h2>
+<p class="muted" style="margin:0">Use el menú lateral para acceder a las funciones habilitadas para su rol.</p></div></div>
+{% endif %}
+{% endblock %}

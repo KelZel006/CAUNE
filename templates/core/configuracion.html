@@ -1,0 +1,14 @@
+{% extends "base.html" %}{% load caune %}
+{% block titulo %}Configuración{% endblock %}
+{% block encabezado %}Configuración{% endblock %}
+{% block contenido %}
+<div class="grid-config">
+  {% if perms.core.view_parametro %}<a class="card" href="{% url 'core:parametros' %}">{% icono "config" %}<div><h3>Datos generales y reglas</h3><p>Datos de CAUNE y reglas de operación configurables, con historial de cambios.</p></div></a>{% endif %}
+  {% if perms.aportaciones.view_tipomovimiento %}<a class="card" href="{% url 'aportaciones:tipos' %}">{% icono "tipos" %}<div><h3>Tipos de movimiento</h3><p>Aportaciones, depósitos y retiros, con su clasificación.</p></div></a>{% endif %}
+  {% if perms.core.view_cuentafondo %}<a class="card" href="{% url 'core:cuentas' %}">{% icono "cuentas" %}<div><h3>Cajas y cuentas bancarias</h3><p>Dónde entra y sale el dinero de cada operación.</p></div></a>{% endif %}
+  {% if perms.core.view_secuencia %}<a class="card" href="{% url 'core:secuencias' %}">{% icono "numeracion" %}<div><h3>Numeración</h3><p>Correlativos de afiliados y operaciones.</p></div></a>{% endif %}
+  {% if perms.core.gestionar_usuarios %}<a class="card" href="{% url 'core:usuarios' %}">{% icono "afiliados" %}<div><h3>Usuarios</h3><p>Altas, roles asignados, bloqueo y contraseñas.</p></div></a>{% endif %}
+  {% if perms.core.gestionar_roles %}<a class="card" href="{% url 'core:roles' %}">{% icono "roles" %}<div><h3>Roles y permisos</h3><p>Qué puede hacer cada rol (mínimo privilegio).</p></div></a>{% endif %}
+</div>
+<p class="muted small" style="margin-top:1.25rem">Las tasas de interés, plazos y métodos de amortización se agregarán en la Fase 2; los métodos de distribución y las reservas, en la Fase 3.</p>
+{% endblock %}

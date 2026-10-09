@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block titulo %}Numeración{% endblock %}
+{% block encabezado %}Numeración de operaciones{% endblock %}
+{% block contenido %}
+<div class="card"><div class="tabla-wrap"><table class="tabla">
+  <thead><tr><th>Prefijo</th><th>Descripción</th><th>Dígitos</th><th>Próximo número</th><th></th></tr></thead>
+  <tbody>{% for s in object_list %}<tr><td><strong>{{ s.prefijo }}</strong></td><td>{{ s.descripcion }}</td><td>{{ s.relleno }}</td><td><code>{{ s.prefijo }}-{{ s.siguiente }}</code></td>
+    <td>{% if perms.core.change_secuencia %}<a class="btn sm" href="{% url 'core:secuencia_editar' s.pk %}">Modificar</a>{% endif %}</td></tr>{% endfor %}</tbody>
+</table></div><p class="muted small">La numeración solo puede avanzar, nunca retroceder, para evitar números repetidos.</p></div>
+{% endblock %}

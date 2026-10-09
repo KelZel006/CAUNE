@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block titulo %}Roles{% endblock %}
+{% block encabezado %}Roles y permisos{% endblock %}
+{% block contenido %}
+<div class="card">
+  <div class="card-head"><h2>Roles</h2><a class="btn primario" href="{% url 'core:rol_crear' %}">+ Nuevo rol</a></div>
+  <div class="tabla-wrap"><table class="tabla">
+    <thead><tr><th>Rol</th><th>Permisos</th><th></th></tr></thead>
+    <tbody>{% for g in object_list %}<tr><td class="nowrap"><strong>{{ g.name }}</strong></td>
+      <td class="small">{% for p in g.permissions.all %}{{ p.name }}{% if not forloop.last %} · {% endif %}{% empty %}<span class="muted">Sin permisos todavía (se ampliarán en las fases siguientes)</span>{% endfor %}</td>
+      <td><a class="btn sm" href="{% url 'core:rol_editar' g.pk %}">Modificar</a></td></tr>{% endfor %}</tbody>
+  </table></div>
+</div>
+{% endblock %}

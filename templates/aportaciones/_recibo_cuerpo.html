@@ -1,0 +1,27 @@
+{% load caune static %}
+<div class="recibo">
+  {% if m.estado == 'ANULADO' %}<div class="sello-anulado" aria-hidden="true">ANULADO</div>{% endif %}
+  <div class="recibo-head">
+    <div class="sellado">
+      <img src="{% static 'img/logo-caune-192.png' %}" alt="Sello de {{ coop.nombre }}" width="56" height="56">
+      <div><div class="coop">{{ coop.nombre }}</div>
+        <div class="muted small">{% if coop.rtn %}RTN {{ coop.rtn }} · {% endif %}{{ coop.direccion }}{% if coop.telefono %} · Tel. {{ coop.telefono }}{% endif %}</div></div>
+    </div>
+    <div class="recibo-numero"><h2>Recibo de {{ m.tipo.nombre|lower }}</h2><b>N.º {{ m.numero_operacion }}</b><span class="small">Fecha: {{ m.fecha|fecha }}</span></div>
+  </div>
+  <dl class="datos">
+    <div><dt>{% if m.tipo.es_retiro %}Pagado a{% else %}Recibido de{% endif %}</dt><dd>{{ m.afiliado.nombre_completo }}</dd></div>
+    <div><dt>Código de afiliado</dt><dd>{{ m.afiliado.codigo }}</dd></div>
+    <div><dt>Concepto</dt><dd>{{ m.tipo.nombre }}</dd></div>
+    <div><dt>Forma de pago</dt><dd>{{ m.get_metodo_pago_display }}{% if m.referencia %} · Ref. {{ m.referencia }}{% endif %}</dd></div>
+  </dl>
+  <div class="recibo-monto" style="margin-top:1.1rem">{{ m.monto|lempiras }}</div>
+  <div class="letras">La suma de: <strong>{{ m.monto|letras }}</strong></div>
+  {% if m.observacion %}<p class="small"><strong>Observación:</strong> {{ m.observacion }}</p>{% endif %}
+  {% if m.estado == 'ANULADO' %}<p class="small" style="color:var(--rojo)"><strong>Anulado</strong> el {{ m.anulado_en|date:"d/m/Y H:i" }}. Motivo: {{ m.motivo_anulacion }}</p>{% endif %}
+  <div class="firmas">
+    <div class="linea">Entregó</div>
+    {% if m.estado == 'CONFIRMADO' %}<img class="sello-confirmado" src="{% static 'img/logo-caune-192.png' %}" alt="Sello de operación confirmada" width="104" height="104">{% else %}<span></span>{% endif %}
+    <div class="linea">Recibió · {{ m.registrado_por.get_full_name|default:m.registrado_por.username }}</div>
+  </div>
+</div>

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block titulo %}Tipos de movimiento{% endblock %}
+{% block encabezado %}Tipos de movimiento{% endblock %}
+{% block contenido %}
+<div class="card">
+  <div class="card-head"><h2>Clasificación de movimientos</h2>{% if perms.aportaciones.add_tipomovimiento %}<a class="btn primario" href="{% url 'aportaciones:tipo_crear' %}">+ Nuevo tipo</a>{% endif %}</div>
+  <div class="tabla-wrap"><table class="tabla">
+    <thead><tr><th>Código</th><th>Nombre</th><th>Clase</th><th>Naturaleza</th><th>Cuenta para distribución</th><th>Estado</th><th></th></tr></thead>
+    <tbody>{% for t in object_list %}<tr><td><strong>{{ t.codigo }}</strong></td><td>{{ t.nombre }}{% if t.descripcion %}<div class="muted small">{{ t.descripcion }}</div>{% endif %}</td><td>{{ t.get_clase_display }}</td><td>{{ t.get_naturaleza_display }}</td>
+      <td>{% if t.participa_distribucion %}<span class="badge info">Sí</span>{% else %}<span class="badge off">No</span>{% endif %}</td>
+      <td>{% if t.activo %}<span class="badge ok">Activo</span>{% else %}<span class="badge off">Inactivo</span>{% endif %}</td>
+      <td>{% if perms.aportaciones.change_tipomovimiento %}<a class="btn sm" href="{% url 'aportaciones:tipo_editar' t.pk %}">Modificar</a>{% endif %}</td></tr>{% endfor %}</tbody>
+  </table></div>
+  <p class="muted small">La clase y la naturaleza definen la clasificación contable y no pueden cambiarse una vez que el tipo tiene movimientos. «Cuenta para distribución» queda pendiente de aprobación por CAUNE (decisión A3) y se usará en la Fase 3.</p>
+</div>
+{% endblock %}

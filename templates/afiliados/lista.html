@@ -1,0 +1,33 @@
+{% extends "base.html" %}{% load caune %}
+{% block titulo %}Afiliados{% endblock %}
+{% block encabezado %}Afiliados{% endblock %}
+{% block contenido %}
+<div class="card">
+  <div class="card-head">
+    <form method="get" class="buscador">
+      {% for k, v in request.GET.items %}{% if k != "q" and k != "page" %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endif %}{% endfor %}
+      {% icono "buscar" %}<input type="search" name="q" value="{{ q }}" placeholder="Buscar por código, nombre, identidad o teléfono"><button class="btn">Buscar</button>
+    </form>
+    <div class="acciones">
+      {% if perms.core.ver_reportes %}<a class="btn" href="{% url 'reportes:afiliados' %}">Reporte</a>{% endif %}
+      {% if perms.afiliados.add_afiliado %}<a class="btn primario" href="{% url 'afiliados:crear' %}">{% icono "mas" %}Nuevo afiliado</a>{% endif %}
+    </div>
+  </div>
+  {% include "partials/filtros.html" %}
+  <div class="tabla-wrap"><table class="tabla">
+    <thead><tr>
+      <th>{% orden "codigo" "Código" %}</th><th>{% orden "nombre" "Nombre" %}</th><th>Identidad</th><th>Teléfono</th>
+      <th>{% orden "ingreso" "Ingreso" %}</th><th>{% orden "estado" "Estado" %}</th>
+      {% if ver_saldos %}<th class="num">{% orden "aportaciones" "Aportaciones" %}</th><th class="num">{% orden "depositos" "Depósitos" %}</th>{% endif %}
+    </tr></thead>
+    <tbody>{% for a in object_list %}
+      <tr><td><a href="{% url 'afiliados:detalle' a.pk %}"><strong>{{ a.codigo }}</strong></a></td>
+        <td><a href="{% url 'afiliados:detalle' a.pk %}">{{ a.apellidos }}, {{ a.nombres }}</a></td>
+        <td class="nowrap">{{ a.identidad|identidad }}</td><td class="nowrap">{{ a.telefono|default:"—" }}</td><td>{{ a.fecha_ingreso|fecha }}</td>
+        <td>{% if a.activo %}<span class="badge ok">Activo</span>{% else %}<span class="badge off">Inactivo</span>{% endif %}</td>
+        {% if ver_saldos %}<td class="num">{{ a.saldo_aportaciones|lempiras }}</td><td class="num">{{ a.saldo_depositos|lempiras }}</td>{% endif %}</tr>
+    {% empty %}<tr><td colspan="8" class="vacio">No se encontraron afiliados.</td></tr>{% endfor %}</tbody>
+  </table></div>
+  {% include "partials/paginacion.html" %}
+</div>
+{% endblock %}

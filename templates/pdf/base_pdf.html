@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<style>
+  @page { size: letter {% block orientacion %}portrait{% endblock %}; margin: 1.6cm 1.4cm 1.6cm 1.4cm;
+    @frame pie { -pdf-frame-content: pie; bottom: .6cm; margin-left: 1.4cm; margin-right: 1.4cm; height: .8cm; } }
+  body { font-family: Helvetica; font-size: 9pt; color: #15233d; }
+  .enc { border-bottom: 2px solid #13284b; padding-bottom: 6px; margin-bottom: 10px; }
+  .coop { font-size: 13pt; font-weight: bold; color: #13284b; }
+  .titulo { font-size: 11pt; font-weight: bold; margin-top: 2px; }
+  .muted { color: #6b778d; }
+  table { width: 100%; border-collapse: collapse; }
+  th { background-color: #e6ecf6; color: #13284b; font-size: 8pt; text-align: left; padding: 4px; border-bottom: 1px solid #c3cddd; }
+  td { padding: 3px 4px; border-bottom: 1px solid #dbe2ec; vertical-align: top; }
+  .num { text-align: right; }
+  tfoot td, .total td { font-weight: bold; background-color: #f1f4fa; }
+  .anulado td { color: #8e98aa; }
+  .caja { border: 1px solid #dbe2ec; padding: 6px; }
+</style></head>
+<body>
+<div class="enc">
+  <table style="width:auto"><tr><td style="border:none;padding:0 10px 0 0;width:58px"><img src="img/logo-caune-pdf.png" width="54" height="54"></td><td style="border:none;padding:0;vertical-align:middle">
+  <div class="coop">{{ coop.nombre }}</div>
+  {% if coop.rtn or coop.direccion or coop.telefono %}<div class="muted">{% if coop.rtn %}RTN {{ coop.rtn }} · {% endif %}{{ coop.direccion }}{% if coop.telefono %} · Tel. {{ coop.telefono }}{% endif %}</div>{% endif %}
+  <div class="titulo">{% block titulo %}{% endblock %}</div>
+  </td></tr></table>
+</div>
+{% block contenido %}{% endblock %}
+<div id="pie" class="muted" style="font-size:7pt">Generado el {{ generado_en|date:"d/m/Y H:i" }} por {{ request.user.username }} · Página <pdf:pagenumber> de <pdf:pagecount></div>
+</body></html>

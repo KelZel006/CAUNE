@@ -1,0 +1,21 @@
+{% extends "base.html" %}{% load caune %}
+{% block titulo %}Usuarios{% endblock %}
+{% block encabezado %}Usuarios{% endblock %}
+{% block contenido %}
+<div class="card">
+  <div class="card-head">
+    <form method="get" class="buscador">{% icono "buscar" %}<input type="search" name="q" value="{{ q }}" placeholder="Buscar usuario, nombre o correo"><button class="btn">Buscar</button></form>
+    <a class="btn primario" href="{% url 'core:usuario_crear' %}">{% icono "mas" %}Nuevo usuario</a>
+  </div>
+  <div class="tabla-wrap"><table class="tabla">
+    <thead><tr><th>{% orden "usuario" "Usuario" %}</th><th>{% orden "nombre" "Nombre" %}</th><th>Correo</th><th>Roles</th><th>Estado</th><th>{% orden "ultimo" "Último ingreso" %}</th><th></th></tr></thead>
+    <tbody>{% for u in object_list %}<tr><td><strong>{{ u.username }}</strong>{% if u.is_superuser %} <span class="badge aviso">Técnico</span>{% endif %}</td><td>{{ u.get_full_name|default:"—" }}</td><td>{{ u.email|default:"—" }}</td>
+      <td>{% for g in u.groups.all %}<span class="badge info">{{ g.name }}</span> {% empty %}<span class="muted">Sin rol</span>{% endfor %}</td>
+      <td>{% if u.is_active %}<span class="badge ok">Activo</span>{% else %}<span class="badge off">Bloqueado</span>{% endif %}</td>
+      <td class="small">{{ u.last_login|date:"d/m/Y H:i"|default:"Nunca" }}</td>
+      <td class="nowrap">{% if not u.is_superuser or user.is_superuser %}<a class="btn sm" href="{% url 'core:usuario_editar' u.pk %}">Modificar</a> <a class="btn sm" href="{% url 'core:usuario_password' u.pk %}">Contraseña</a>{% endif %}</td></tr>
+    {% empty %}<tr><td colspan="7" class="vacio">Sin resultados.</td></tr>{% endfor %}</tbody>
+  </table></div>
+  {% include "partials/paginacion.html" %}
+</div>
+{% endblock %}

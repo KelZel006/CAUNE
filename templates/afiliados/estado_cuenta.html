@@ -1,0 +1,44 @@
+{% extends "base.html" %}{% load caune static %}
+{% block titulo %}Estado de cuenta {{ object.codigo }}{% endblock %}
+{% block encabezado %}Estado de cuenta · {{ object.codigo }} · {{ object.nombre_completo }}{% endblock %}
+{% block contenido %}
+<div class="card no-imprimir">
+  <form method="get" class="filtros" style="margin:0">
+    {% for campo in form %}<div class="campo"><label for="{{ campo.id_for_label }}">{{ campo.label }}</label>{{ campo }}</div>{% endfor %}
+    {% if form.non_field_errors %}<div class="errores-form" style="grid-column:1/-1">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+    <div class="acciones">
+      <a class="btn" href="{% url 'afiliados:detalle' object.pk %}">{% icono "volver" %}Afiliado</a>
+      <a class="btn" href="{% url_exportar 'pdf' %}" target="_blank">{% icono "descargar" %}PDF</a>
+      <a class="btn" href="{% url_exportar 'xlsx' %}">Excel</a>
+      <button class="btn" type="button" onclick="window.print()">{% icono "imprimir" %}Imprimir</button>
+      <button class="btn primario" type="submit">Consultar</button>
+    </div>
+  </form>
+</div>
+<div class="card">
+  <div class="card-head con-filete sellado" style="justify-content:flex-start">
+    <img src="{% static 'img/logo-caune-192.png' %}" alt="Sello de {{ coop.nombre }}" width="56" height="56">
+    <div><div class="coop" style="font-weight:750;font-size:1.05rem;color:var(--marino-900)">{{ coop.nombre }}</div>
+      <h2 style="margin:.15rem 0">Estado de cuenta · {{ object.codigo }} · {{ object.nombre_completo }}</h2>
+      <span class="muted small">{% if ec.desde %}Del {{ ec.desde|fecha }} al {{ ec.hasta|fecha }}{% else %}Desde el ingreso hasta el {{ ec.hasta|fecha }}{% endif %} · Identidad {{ object.identidad|identidad }} · Ingreso {{ object.fecha_ingreso|fecha }}</span></div>
+  </div>
+  <div class="kpis">
+    <div class="kpi"><div class="etq">Saldo inicial</div><div class="valor">{{ ec.saldo_inicial.total|lempiras }}</div><div class="det">Aport. {{ ec.saldo_inicial.aportaciones|lempiras }} · Dep. {{ ec.saldo_inicial.depositos|lempiras }}</div></div>
+    <div class="kpi aportacion"><div class="etq">Aportaciones del período</div><div class="valor">{{ ec.totales.entradas_aportaciones|lempiras }}</div>{% if ec.totales.retiros_aportaciones %}<div class="det">Retiros {{ ec.totales.retiros_aportaciones|lempiras }}</div>{% endif %}</div>
+    <div class="kpi deposito"><div class="etq">Depósitos / retiros</div><div class="valor">{{ ec.totales.entradas_depositos|lempiras }}</div><div class="det">Retiros {{ ec.totales.retiros_depositos|lempiras }}</div></div>
+    <div class="kpi destacado"><div class="etq">Saldo final</div><div class="valor">{{ ec.saldo_final.total|lempiras }}</div><div class="det">Aport. {{ ec.saldo_final.aportaciones|lempiras }} · Dep. {{ ec.saldo_final.depositos|lempiras }}</div></div>
+  </div>
+  <div class="tabla-wrap"><table class="tabla">
+    <thead><tr><th>Fecha</th><th>Operación</th><th>Tipo</th><th>Método</th><th class="num">Entrada</th><th class="num">Salida</th><th class="num">Saldo aportaciones</th><th class="num">Saldo depósitos</th><th class="num">Saldo total</th></tr></thead>
+    <tbody>
+      <tr><td colspan="6" class="muted">Saldo inicial</td><td class="num">{{ ec.saldo_inicial.aportaciones|lempiras }}</td><td class="num">{{ ec.saldo_inicial.depositos|lempiras }}</td><td class="num">{{ ec.saldo_inicial.total|lempiras }}</td></tr>
+      {% for l in ec.lineas %}<tr><td>{{ l.movimiento.fecha|fecha }}</td><td><a href="{% url 'aportaciones:detalle' l.movimiento.pk %}">{{ l.movimiento.numero_operacion }}</a></td><td><span class="tipo tipo-{{ l.movimiento.tipo.clase|lower }}">{{ l.movimiento.tipo.nombre }}</span></td><td class="small">{{ l.movimiento.get_metodo_pago_display }}</td>
+        <td class="num">{% if l.entrada %}{{ l.entrada|lempiras }}{% endif %}</td><td class="num">{% if l.salida %}{{ l.salida|lempiras }}{% endif %}</td>
+        <td class="num">{{ l.saldo_aportaciones|lempiras }}</td><td class="num">{{ l.saldo_depositos|lempiras }}</td><td class="num"><strong>{{ l.saldo_total|lempiras }}</strong></td></tr>
+      {% empty %}<tr><td colspan="9" class="vacio">Sin movimientos confirmados en el período.</td></tr>{% endfor %}
+    </tbody>
+    <tfoot><tr><td colspan="6">Saldo final</td><td class="num">{{ ec.saldo_final.aportaciones|lempiras }}</td><td class="num">{{ ec.saldo_final.depositos|lempiras }}</td><td class="num">{{ ec.saldo_final.total|lempiras }}</td></tr></tfoot>
+  </table></div>
+  <p class="muted small">Solo se incluyen operaciones confirmadas. Las operaciones anuladas pueden consultarse en el historial de movimientos.</p>
+</div>
+{% endblock %}

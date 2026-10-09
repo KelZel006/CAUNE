@@ -1,0 +1,22 @@
+{% extends "pdf/base_pdf.html" %}{% load caune %}
+{% block orientacion %}landscape{% endblock %}
+{% block titulo %}Estado de cuenta · {{ ec.afiliado.codigo }} · {{ ec.afiliado.nombre_completo }}{% endblock %}
+{% block contenido %}
+<table style="margin-bottom:8px"><tr>
+  <td>Identidad: <b>{{ ec.afiliado.identidad|identidad }}</b></td>
+  <td>Ingreso: <b>{{ ec.afiliado.fecha_ingreso|fecha }}</b></td>
+  <td>Estado: <b>{{ ec.afiliado.get_estado_display }}</b></td>
+  <td>Período: <b>{% if ec.desde %}{{ ec.desde|fecha }} al {{ ec.hasta|fecha }}{% else %}hasta el {{ ec.hasta|fecha }}{% endif %}</b></td>
+</tr></table>
+<table>
+  <thead><tr><th>Fecha</th><th>Operación</th><th>Tipo</th><th>Método</th><th class="num">Entrada</th><th class="num">Salida</th><th class="num">Saldo aport.</th><th class="num">Saldo dep.</th><th class="num">Saldo total</th></tr></thead>
+  <tbody>
+    <tr><td colspan="6">Saldo inicial</td><td class="num">{{ ec.saldo_inicial.aportaciones|lempiras }}</td><td class="num">{{ ec.saldo_inicial.depositos|lempiras }}</td><td class="num">{{ ec.saldo_inicial.total|lempiras }}</td></tr>
+    {% for l in ec.lineas %}<tr><td>{{ l.movimiento.fecha|fecha }}</td><td>{{ l.movimiento.numero_operacion }}</td><td>{{ l.movimiento.tipo.nombre }}</td><td>{{ l.movimiento.get_metodo_pago_display }}</td>
+      <td class="num">{% if l.entrada %}{{ l.entrada|lempiras }}{% endif %}</td><td class="num">{% if l.salida %}{{ l.salida|lempiras }}{% endif %}</td>
+      <td class="num">{{ l.saldo_aportaciones|lempiras }}</td><td class="num">{{ l.saldo_depositos|lempiras }}</td><td class="num">{{ l.saldo_total|lempiras }}</td></tr>{% endfor %}
+  </tbody>
+  <tfoot><tr><td colspan="6">Saldo final</td><td class="num">{{ ec.saldo_final.aportaciones|lempiras }}</td><td class="num">{{ ec.saldo_final.depositos|lempiras }}</td><td class="num">{{ ec.saldo_final.total|lempiras }}</td></tr></tfoot>
+</table>
+<p class="muted">Totales del período: aportaciones {{ ec.totales.entradas_aportaciones|lempiras }} · depósitos {{ ec.totales.entradas_depositos|lempiras }} · retiros de depósitos {{ ec.totales.retiros_depositos|lempiras }}. Solo incluye operaciones confirmadas.</p>
+{% endblock %}

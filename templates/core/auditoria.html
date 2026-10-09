@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block titulo %}Auditoría{% endblock %}
+{% block encabezado %}Historial de auditoría{% endblock %}
+{% block contenido %}
+<div class="card">
+  <form method="get" class="buscador" style="margin-bottom:1rem;max-width:none"><input type="search" name="q" value="{{ q }}" placeholder="Buscar en usuario, entidad o descripción"><button class="btn">Buscar</button></form>
+  {% include "partials/filtros.html" %}
+  <div class="tabla-wrap"><table class="tabla">
+    <thead><tr><th>Fecha y hora</th><th>Usuario</th><th>Acción</th><th>Entidad</th><th>Descripción / cambios</th><th>IP</th></tr></thead>
+    <tbody>{% for a in object_list %}<tr><td class="nowrap">{{ a.fecha|date:"d/m/Y H:i:s" }}</td><td>{{ a.usuario_nombre|default:"—" }}</td><td><span class="badge {% if a.accion == 'ANULAR' or a.accion == 'INGRESO_FALLIDO' %}mal{% elif a.accion == 'CONFIGURAR' %}aviso{% else %}info{% endif %}">{{ a.get_accion_display }}</span></td>
+      <td class="small">{{ a.entidad }}{% if a.entidad_id %} #{{ a.entidad_id }}{% endif %}</td>
+      <td class="small">{{ a.descripcion }}{% if a.datos_antes or a.datos_despues %}<details><summary class="muted">Ver datos</summary>{% if a.datos_antes %}<div><strong>Antes:</strong> <code>{{ a.datos_antes }}</code></div>{% endif %}{% if a.datos_despues %}<div><strong>Después:</strong> <code>{{ a.datos_despues }}</code></div>{% endif %}</details>{% endif %}</td>
+      <td class="small">{{ a.ip|default:"—" }}</td></tr>
+    {% empty %}<tr><td colspan="6" class="vacio">Sin registros.</td></tr>{% endfor %}</tbody>
+  </table></div>
+  {% include "partials/paginacion.html" %}
+</div>
+{% endblock %}

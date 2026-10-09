@@ -1,0 +1,23 @@
+{% if form.non_field_errors %}
+  <div class="errores-form" role="alert"><ul>{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul></div>
+{% endif %}
+{% for h in form.hidden_fields %}{{ h }}{% if h.errors %}<div class="errores-form">{{ h.errors|join:" " }}</div>{% endif %}{% endfor %}
+<div class="form-grid">
+{% for campo in form.visible_fields %}
+  {% if campo.widget_type == "checkbox" %}
+    <div class="campo check ancho{% if campo.errors %} con-error{% endif %}">
+      {{ campo }}<label for="{{ campo.id_for_label }}">{{ campo.label }}</label>
+      {% if campo.errors %}<ul class="errores">{% for e in campo.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    </div>
+  {% else %}
+    <div class="campo{% if campo.widget_type == 'textarea' or campo.widget_type == 'checkboxselectmultiple' %} ancho{% endif %}{% if campo.errors %} con-error{% endif %}">
+      <label for="{{ campo.id_for_label }}">{{ campo.label }}{% if campo.field.required %} <span class="req">*</span>{% endif %}</label>
+      {% if campo.widget_type == "checkboxselectmultiple" %}
+        <ul class="checks">{% for op in campo %}<li><label>{{ op.tag }} {{ op.choice_label }}</label></li>{% endfor %}</ul>
+      {% else %}{{ campo }}{% endif %}
+      {% if campo.help_text %}<span class="ayuda">{{ campo.help_text|safe }}</span>{% endif %}
+      {% if campo.errors %}<ul class="errores">{% for e in campo.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    </div>
+  {% endif %}
+{% endfor %}
+</div>

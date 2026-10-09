@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block titulo %}Reportes{% endblock %}
+{% block encabezado %}Reportes{% endblock %}
+{% block contenido %}
+<div class="grid-config">
+  {% if perms.afiliados.view_afiliado %}<a class="card" href="{% url 'reportes:afiliados' %}"><h3>1. Listado de afiliados</h3><p>Datos, estado y saldos por afiliado. PDF y Excel.</p></a>{% endif %}
+  {% if perms.aportaciones.view_movimientoafiliado %}<a class="card" href="{% url 'reportes:movimientos' %}"><h3>3. Aportaciones y depósitos</h3><p>Movimientos por período, afiliado, tipo, método o caja, con totales. PDF y Excel.</p></a>{% endif %}
+</div>
+{% if perms.afiliados.ver_estado_cuenta %}
+<div class="card" style="margin-top:1.25rem">
+  <h2>2. Estado de cuenta por afiliado</h2>
+  <form method="get" action="{% url 'reportes:estado_cuenta' %}" class="filtros" style="margin:0">
+    <div class="campo"><label for="ec-af">Afiliado</label><select id="ec-af" name="afiliado" required><option value="">Seleccione…</option>{% for a in afiliados %}<option value="{{ a.pk }}">{{ a.codigo }} · {{ a.nombre_completo }}{% if not a.activo %} (inactivo){% endif %}</option>{% endfor %}</select></div>
+    <div class="campo"><label for="ec-desde">Desde</label><input id="ec-desde" type="date" name="desde"></div>
+    <div class="campo"><label for="ec-hasta">Hasta</label><input id="ec-hasta" type="date" name="hasta"></div>
+    <div class="acciones"><button class="btn primario" type="submit">Ver estado de cuenta</button></div>
+  </form>
+</div>
+{% endif %}
+<p class="muted small">Los reportes 4 a 14 (préstamos, actividades, distribuciones, caja, bancos y resumen financiero) se agregarán en las fases 2 y 3.</p>
+{% endblock %}

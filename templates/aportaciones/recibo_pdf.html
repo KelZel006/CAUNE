@@ -1,0 +1,20 @@
+{% extends "pdf/base_pdf.html" %}{% load caune %}
+{% block titulo %}Recibo de {{ m.tipo.nombre|lower }} · N.º {{ m.numero_operacion }}{% if m.estado == 'ANULADO' %} — ANULADO{% endif %}{% endblock %}
+{% block contenido %}
+<table>
+  <tr><td style="width:30%" class="muted">Fecha</td><td><b>{{ m.fecha|fecha }}</b></td></tr>
+  <tr><td class="muted">{% if m.tipo.es_retiro %}Pagado a{% else %}Recibido de{% endif %}</td><td><b>{{ m.afiliado.nombre_completo }}</b> ({{ m.afiliado.codigo }})</td></tr>
+  <tr><td class="muted">Concepto</td><td>{{ m.tipo.nombre }}</td></tr>
+  <tr><td class="muted">Forma de pago</td><td>{{ m.get_metodo_pago_display }}{% if m.referencia %} · Ref. {{ m.referencia }}{% endif %}</td></tr>
+  <tr><td class="muted">Caja o cuenta</td><td>{{ m.cuenta_fondo }}</td></tr>
+  <tr class="total"><td>Monto</td><td style="font-size:14pt">{{ m.monto|lempiras }}</td></tr>
+  <tr><td class="muted">La suma de</td><td><b>{{ m.monto|letras }}</b></td></tr>
+  {% if m.observacion %}<tr><td class="muted">Observación</td><td>{{ m.observacion }}</td></tr>{% endif %}
+</table>
+{% if m.estado == 'ANULADO' %}<p style="color:#b42318;font-size:12pt"><b>OPERACIÓN ANULADA</b> el {{ m.anulado_en|date:"d/m/Y H:i" }}. Motivo: {{ m.motivo_anulacion }}</p>{% endif %}
+<table style="margin-top:40px"><tr>
+  <td style="width:40%;border-top:1px solid #15233d;text-align:center;border-bottom:none;vertical-align:bottom">Entregó</td>
+  <td style="width:20%;border-bottom:none;text-align:center">{% if m.estado == 'CONFIRMADO' %}<img src="img/logo-caune-pdf.png" width="80" height="80">{% endif %}</td>
+  <td style="width:40%;border-top:1px solid #15233d;text-align:center;border-bottom:none;vertical-align:bottom">Recibió · {{ m.registrado_por.get_full_name|default:m.registrado_por.username }}</td>
+</tr></table>
+{% endblock %}

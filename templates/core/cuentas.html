@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block titulo %}Cajas y cuentas{% endblock %}
+{% block encabezado %}Cajas y cuentas bancarias{% endblock %}
+{% block contenido %}
+<div class="card">
+  <div class="card-head"><h2>Registradas</h2>{% if perms.core.add_cuentafondo %}<a class="btn primario" href="{% url 'core:cuenta_crear' %}">+ Nueva</a>{% endif %}</div>
+  <div class="tabla-wrap"><table class="tabla">
+    <thead><tr><th>Tipo</th><th>Nombre</th><th>Banco</th><th>N.º de cuenta</th><th>Titular</th><th>Estado</th><th></th></tr></thead>
+    <tbody>{% for c in object_list %}<tr><td>{{ c.get_tipo_display }}</td><td>{{ c.nombre }}</td><td>{{ c.banco|default:"—" }}</td><td>{{ c.numero_cuenta|default:"—" }}</td><td>{{ c.titular|default:"—" }}</td>
+      <td>{% if c.activa %}<span class="badge ok">Activa</span>{% else %}<span class="badge off">Inactiva</span>{% endif %}</td>
+      <td>{% if perms.core.change_cuentafondo %}<a class="btn sm" href="{% url 'core:cuenta_editar' c.pk %}">Modificar</a>{% endif %}</td></tr>
+    {% empty %}<tr><td colspan="7" class="vacio">No hay cajas ni cuentas registradas.</td></tr>{% endfor %}</tbody>
+  </table></div>
+  <p class="muted small">Los saldos, transferencias y conciliaciones de caja y bancos se implementan en la Fase 3.</p>
+</div>
+{% endblock %}

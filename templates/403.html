@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block titulo %}Sin permiso{% endblock %}
+{% block encabezado %}Acceso no autorizado{% endblock %}
+{% block contenido %}
+<div class="card" style="max-width:640px">
+  <h2>No tiene permiso para esta función</h2>
+  <p class="muted">Su rol no incluye esta operación. Si la necesita, solicítela al administrador de CAUNE.</p>
+  <a class="btn primario" href="{% url 'core:dashboard' %}">Volver al panel</a>
+</div>
+{% endblock %}

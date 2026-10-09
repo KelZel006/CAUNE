@@ -1,0 +1,599 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-09T04:19:02.417Z",
+  "title": "Design System: CAUNE · Caja de Ahorro Unión y Esfuerzo",
+  "extensions": {
+    "colorMeta": {
+      "marino-950": {
+        "role": "primary",
+        "displayName": "Marino Noche",
+        "tonalRamp": [
+          "#0b1a33",
+          "#13284b",
+          "#1b3561",
+          "#24467d",
+          "#738aaf",
+          "#c2d2ec",
+          "#e6ecf6",
+          "#f1f4fa"
+        ]
+      },
+      "marino-900": {
+        "role": "primary",
+        "displayName": "Marino del Sello",
+        "canonical": "oklch(28.0% 0.070 260)",
+        "tonalRamp": [
+          "#0b1a33",
+          "#13284b",
+          "#1b3561",
+          "#24467d",
+          "#738aaf",
+          "#c2d2ec",
+          "#e6ecf6",
+          "#f1f4fa"
+        ]
+      },
+      "marino-800": {
+        "role": "primary",
+        "displayName": "Marino Etiqueta",
+        "tonalRamp": [
+          "#0b1a33",
+          "#13284b",
+          "#1b3561",
+          "#24467d",
+          "#738aaf",
+          "#c2d2ec",
+          "#e6ecf6",
+          "#f1f4fa"
+        ]
+      },
+      "marino-700": {
+        "role": "primary",
+        "displayName": "Marino Activo",
+        "tonalRamp": [
+          "#0b1a33",
+          "#13284b",
+          "#1b3561",
+          "#24467d",
+          "#738aaf",
+          "#c2d2ec",
+          "#e6ecf6",
+          "#f1f4fa"
+        ]
+      },
+      "marino-100": {
+        "role": "primary",
+        "displayName": "Marino Bruma",
+        "tonalRamp": [
+          "#0b1a33",
+          "#13284b",
+          "#1b3561",
+          "#24467d",
+          "#738aaf",
+          "#c2d2ec",
+          "#e6ecf6",
+          "#f1f4fa"
+        ]
+      },
+      "marino-50": {
+        "role": "primary",
+        "displayName": "Marino Velo",
+        "tonalRamp": [
+          "#0b1a33",
+          "#13284b",
+          "#1b3561",
+          "#24467d",
+          "#738aaf",
+          "#c2d2ec",
+          "#e6ecf6",
+          "#f1f4fa"
+        ]
+      },
+      "union": {
+        "role": "secondary",
+        "displayName": "Azul Unión",
+        "canonical": "oklch(54.9% 0.169 256)",
+        "tonalRamp": [
+          "#000829",
+          "#002457",
+          "#044289",
+          "#1864bf",
+          "#4789e2",
+          "#7ab0fa",
+          "#a8d4ff",
+          "#cff1ff"
+        ]
+      },
+      "union-oscuro": {
+        "role": "secondary",
+        "displayName": "Azul Unión Hondo",
+        "tonalRamp": [
+          "#000829",
+          "#002457",
+          "#044289",
+          "#1864bf",
+          "#4789e2",
+          "#7ab0fa",
+          "#a8d4ff",
+          "#cff1ff"
+        ]
+      },
+      "union-50": {
+        "role": "secondary",
+        "displayName": "Azul Unión Velo",
+        "tonalRamp": [
+          "#000829",
+          "#002457",
+          "#044289",
+          "#1864bf",
+          "#4789e2",
+          "#7ab0fa",
+          "#a8d4ff",
+          "#cff1ff"
+        ]
+      },
+      "esfuerzo": {
+        "role": "tertiary",
+        "displayName": "Naranja Esfuerzo",
+        "canonical": "oklch(70.1% 0.164 58)",
+        "tonalRamp": [
+          "#1f0100",
+          "#481300",
+          "#742c00",
+          "#a44800",
+          "#c96f11",
+          "#e69a5e",
+          "#ffc294",
+          "#ffe3bf"
+        ]
+      },
+      "esfuerzo-oscuro": {
+        "role": "tertiary",
+        "displayName": "Naranja Esfuerzo Tostado",
+        "tonalRamp": [
+          "#1f0100",
+          "#481300",
+          "#742c00",
+          "#a44800",
+          "#c96f11",
+          "#e69a5e",
+          "#ffc294",
+          "#ffe3bf"
+        ]
+      },
+      "esfuerzo-50": {
+        "role": "tertiary",
+        "displayName": "Naranja Esfuerzo Velo",
+        "tonalRamp": [
+          "#1f0100",
+          "#481300",
+          "#742c00",
+          "#a44800",
+          "#c96f11",
+          "#e69a5e",
+          "#ffc294",
+          "#ffe3bf"
+        ]
+      },
+      "oro": {
+        "role": "tertiary",
+        "displayName": "Dorado del Aro",
+        "canonical": "oklch(72.7% 0.126 86)",
+        "tonalRamp": [
+          "#150800",
+          "#362200",
+          "#5b4000",
+          "#836000",
+          "#a6842b",
+          "#c7ab69",
+          "#e5cf9b",
+          "#ffedc5"
+        ]
+      },
+      "oro-claro": {
+        "role": "tertiary",
+        "displayName": "Dorado Filete",
+        "tonalRamp": [
+          "#150800",
+          "#362200",
+          "#5b4000",
+          "#836000",
+          "#a6842b",
+          "#c7ab69",
+          "#e5cf9b",
+          "#ffedc5"
+        ]
+      },
+      "tinta": {
+        "role": "neutral",
+        "displayName": "Tinta",
+        "canonical": "oklch(25.8% 0.053 261)",
+        "tonalRamp": [
+          "#060b15",
+          "#1e2736",
+          "#39455b",
+          "#566683",
+          "#7a8aa6",
+          "#a1afc7",
+          "#c6d2e5",
+          "#e6efff"
+        ]
+      },
+      "tinta-2": {
+        "role": "neutral",
+        "displayName": "Tinta Secundaria",
+        "tonalRamp": [
+          "#060b15",
+          "#1e2736",
+          "#39455b",
+          "#566683",
+          "#7a8aa6",
+          "#a1afc7",
+          "#c6d2e5",
+          "#e6efff"
+        ]
+      },
+      "tinta-3": {
+        "role": "neutral",
+        "displayName": "Tinta Atenuada",
+        "tonalRamp": [
+          "#060b15",
+          "#1e2736",
+          "#39455b",
+          "#566683",
+          "#7a8aa6",
+          "#a1afc7",
+          "#c6d2e5",
+          "#e6efff"
+        ]
+      },
+      "borde": {
+        "role": "neutral",
+        "displayName": "Borde",
+        "canonical": "oklch(91.0% 0.016 257)",
+        "tonalRamp": [
+          "#090b0e",
+          "#24272b",
+          "#41454c",
+          "#61676f",
+          "#848a92",
+          "#a9aeb5",
+          "#cdd1d7",
+          "#eceff3"
+        ]
+      },
+      "borde-fuerte": {
+        "role": "neutral",
+        "displayName": "Borde Firme",
+        "tonalRamp": [
+          "#090b0e",
+          "#24272b",
+          "#41454c",
+          "#61676f",
+          "#848a92",
+          "#a9aeb5",
+          "#cdd1d7",
+          "#eceff3"
+        ]
+      },
+      "fondo": {
+        "role": "neutral",
+        "displayName": "Fondo Azulado",
+        "canonical": "oklch(97.0% 0.006 264)",
+        "tonalRamp": [
+          "#0b0b0c",
+          "#262628",
+          "#444547",
+          "#646669",
+          "#87898c",
+          "#acaeb1",
+          "#d0d1d3",
+          "#edeef0"
+        ]
+      },
+      "blanco": {
+        "role": "neutral",
+        "displayName": "Blanco Hoja",
+        "tonalRamp": [
+          "#0b0b0c",
+          "#262628",
+          "#444547",
+          "#646669",
+          "#87898c",
+          "#acaeb1",
+          "#d0d1d3",
+          "#edeef0"
+        ]
+      },
+      "rojo": {
+        "role": "neutral",
+        "displayName": "Rojo Anulación",
+        "canonical": "oklch(50.0% 0.182 29)",
+        "tonalRamp": [
+          "#240000",
+          "#500000",
+          "#80160e",
+          "#b42e22",
+          "#d95b4c",
+          "#f68c7c",
+          "#ffb8aa",
+          "#ffdbcf"
+        ]
+      },
+      "rojo-50": {
+        "role": "neutral",
+        "displayName": "Rojo Velo",
+        "tonalRamp": [
+          "#240000",
+          "#500000",
+          "#80160e",
+          "#b42e22",
+          "#d95b4c",
+          "#f68c7c",
+          "#ffb8aa",
+          "#ffdbcf"
+        ]
+      },
+      "verde": {
+        "role": "neutral",
+        "displayName": "Verde Éxito",
+        "canonical": "oklch(51.5% 0.110 157)",
+        "tonalRamp": [
+          "#001104",
+          "#003019",
+          "#0d5232",
+          "#24784e",
+          "#519b72",
+          "#83be9b",
+          "#b0dec1",
+          "#d5f9e2"
+        ]
+      },
+      "verde-50": {
+        "role": "neutral",
+        "displayName": "Verde Velo",
+        "tonalRamp": [
+          "#001104",
+          "#003019",
+          "#0d5232",
+          "#24784e",
+          "#519b72",
+          "#83be9b",
+          "#b0dec1",
+          "#d5f9e2"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Monto del recibo. Familia provisional (pila de sistema; fuente propia pendiente de permiso)."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Valor de KPI del panel."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Encabezados de tarjeta y barra superior."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Texto general; raíz 15px. PDF usa Helvetica 9pt."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Etiquetas de campo."
+      },
+      "table": {
+        "displayName": "Tabla",
+        "purpose": "Celdas de tabla con cifras tabulares."
+      }
+    },
+    "shadows": [
+      {
+        "name": "reposo",
+        "value": "0 1px 2px rgba(19, 40, 75, .05), 0 4px 14px -6px rgba(19, 40, 75, .12)",
+        "purpose": "Tarjetas, KPI y recibo."
+      },
+      {
+        "name": "alta",
+        "value": "0 2px 4px rgba(19, 40, 75, .06), 0 12px 32px -12px rgba(19, 40, 75, .28)",
+        "purpose": "KPI destacado, riel móvil abierto, hover de tarjeta enlazada."
+      },
+      {
+        "name": "aro",
+        "value": "0 0 0 2px #c9a13b",
+        "purpose": "Anillo dorado de todo sello circular."
+      },
+      {
+        "name": "foco",
+        "value": "0 0 0 3px rgba(201, 161, 59, .45)",
+        "purpose": "Foco visible global."
+      },
+      {
+        "name": "foco-campo",
+        "value": "0 0 0 3px rgba(31, 111, 209, .18)",
+        "purpose": "Halo de campo enfocado."
+      },
+      {
+        "name": "banda-aportacion",
+        "value": "inset 0 3px 0 #e8800f",
+        "purpose": "Banda superior del KPI de aportaciones."
+      },
+      {
+        "name": "banda-deposito",
+        "value": "inset 0 3px 0 #1f6fd1",
+        "purpose": "Banda superior del KPI de depósitos."
+      }
+    ],
+    "motion": [
+      {
+        "name": "salida-suave",
+        "value": "cubic-bezier(.16, 1, .3, 1)",
+        "purpose": "Hover del riel (.18s), presión de botón, apertura del riel móvil (.25s), entrada de alertas (.4s)."
+      },
+      {
+        "name": "duracion-estado",
+        "value": ".15s",
+        "purpose": "Cambios de color, borde y sombra en botones y campos."
+      },
+      {
+        "name": "reduccion",
+        "value": "prefers-reduced-motion: reduce",
+        "purpose": "Anula toda animación y transición."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "telefono-angosto",
+        "value": "420px"
+      },
+      {
+        "name": "telefono",
+        "value": "600px"
+      },
+      {
+        "name": "riel-oculto",
+        "value": "960px"
+      },
+      {
+        "name": "detalle-apilado",
+        "value": "1100px"
+      },
+      {
+        "name": "contenido-max",
+        "value": "1440px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Botón primario",
+      "kind": "button",
+      "refersTo": "button-primario",
+      "description": "La única acción rellena del bloque (Registrar movimiento, Guardar, Ingresar).",
+      "html": "<button class=\"ds-btn ds-btn-primario\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"M12 5v14\"/></svg>Registrar movimiento</button>",
+      "css": ".ds-icon{width:1rem;height:1rem;flex:none;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}.ds-btn{display:inline-flex;align-items:center;gap:.45rem;border:1px solid #c3cddd;background:#fff;color:#13284b;padding:.52rem .95rem;border-radius:8px;font:inherit;font-size:.9rem;font-weight:600;min-height:2.4rem;cursor:pointer;transition:background-color .15s,border-color .15s,box-shadow .15s,transform .15s cubic-bezier(.16,1,.3,1)}.ds-btn:active{transform:translateY(1px)}.ds-btn:focus-visible{box-shadow:0 0 0 3px rgba(201,161,59,.45);outline:none}.ds-btn-primario{background:#1f6fd1;border-color:#1f6fd1;color:#fff;box-shadow:0 1px 2px rgba(31,111,209,.3),0 4px 10px -4px rgba(31,111,209,.5)}.ds-btn-primario:hover{background:#1758a8;border-color:#1758a8}"
+    },
+    {
+      "name": "Botón secundario",
+      "kind": "button",
+      "refersTo": "button-secundario",
+      "description": "Acciones de apoyo: Ver todas, Imprimir, Descargar PDF, Salir.",
+      "html": "<button class=\"ds-btn\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4\"/><path d=\"m7 10 5 5 5-5\"/><path d=\"M12 15V3\"/></svg>Descargar PDF</button>",
+      "css": ".ds-icon{width:1rem;height:1rem;flex:none;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}.ds-btn{display:inline-flex;align-items:center;gap:.45rem;border:1px solid #c3cddd;background:#fff;color:#13284b;padding:.52rem .95rem;border-radius:8px;font:inherit;font-size:.9rem;font-weight:600;min-height:2.4rem;cursor:pointer;transition:background-color .15s,border-color .15s,box-shadow .15s,transform .15s cubic-bezier(.16,1,.3,1)}.ds-btn:active{transform:translateY(1px)}.ds-btn:focus-visible{box-shadow:0 0 0 3px rgba(201,161,59,.45);outline:none}.ds-btn:hover{background:#f1f4fa;border-color:#24467d}"
+    },
+    {
+      "name": "Botón de peligro",
+      "kind": "button",
+      "refersTo": "button-peligro",
+      "description": "Sólo para anular una operación con motivo.",
+      "html": "<button class=\"ds-btn ds-btn-peligro\">Anular operación</button>",
+      "css": ".ds-btn{display:inline-flex;align-items:center;gap:.45rem;border:1px solid #c3cddd;background:#fff;color:#13284b;padding:.52rem .95rem;border-radius:8px;font:inherit;font-size:.9rem;font-weight:600;min-height:2.4rem;cursor:pointer;transition:background-color .15s,border-color .15s,box-shadow .15s,transform .15s cubic-bezier(.16,1,.3,1)}.ds-btn:active{transform:translateY(1px)}.ds-btn:focus-visible{box-shadow:0 0 0 3px rgba(201,161,59,.45);outline:none}.ds-btn-peligro{background:#b42318;border-color:#b42318;color:#fff}.ds-btn-peligro:hover{background:#95190f;border-color:#95190f}"
+    },
+    {
+      "name": "Campo de formulario",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Etiqueta encima, campo con foco azul y ayuda atenuada.",
+      "html": "<div class=\"ds-campo\"><label for=\"ds-m\">Monto <span class=\"ds-req\">*</span></label><input id=\"ds-m\" class=\"ds-input\" placeholder=\"0.00\"><span class=\"ds-ayuda\">En lempiras.</span></div>",
+      "css": ".ds-campo{display:flex;flex-direction:column;gap:.35rem;max-width:280px}.ds-campo label{font-size:.85rem;font-weight:600;color:#1b3561}.ds-req{color:#b45f05}.ds-ayuda{font-size:.79rem;color:#6b778d}.ds-input{font:inherit;font-size:.93rem;padding:.52rem .7rem;border:1px solid #c3cddd;border-radius:8px;background:#fff;color:#15233d;min-height:2.5rem;transition:border-color .15s,box-shadow .15s}.ds-input::placeholder{color:#75819a}.ds-input:hover{border-color:#24467d}.ds-input:focus{outline:none;border-color:#1f6fd1;box-shadow:0 0 0 3px rgba(31,111,209,.18)}"
+    },
+    {
+      "name": "Riel lateral",
+      "kind": "nav",
+      "refersTo": "nav-item-activo",
+      "description": "Riel marino con filete dorado, sello sobre disco blanco con aro dorado, ítem activo con icono dorado.",
+      "html": "<nav class=\"ds-riel\"><div class=\"ds-marca\"><span class=\"ds-sello\"></span><strong>CAUNE</strong></div><div class=\"ds-grupo\">Operación</div><a href=\"#\" class=\"ds-item ds-activo\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2\"/><circle cx=\"9\" cy=\"7\" r=\"4\"/></svg>Afiliados</a><a href=\"#\" class=\"ds-item\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M8 3 4 7l4 4\"/><path d=\"M4 7h16\"/><path d=\"m16 21 4-4-4-4\"/><path d=\"M20 17H4\"/></svg>Aportaciones y depósitos</a></nav>",
+      "css": ".ds-icon{width:1.15rem;height:1.15rem;flex:none;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}.ds-riel{width:264px;background:#13284b;border-right:1px solid #c9a13b;padding:1rem .7rem;display:flex;flex-direction:column;gap:2px}.ds-marca{display:flex;align-items:center;gap:.85rem;padding:.35rem .55rem 1rem}.ds-sello{width:48px;height:48px;border-radius:50%;background:#fff;box-shadow:0 0 0 2px #c9a13b}.ds-marca strong{color:#fff;font-size:1.3rem;letter-spacing:.14em;font-weight:800}.ds-grupo{font-size:.7rem;font-weight:650;text-transform:uppercase;letter-spacing:.1em;color:#8597b8;padding:1rem .75rem .35rem}.ds-item{display:flex;align-items:center;gap:.7rem;padding:.58rem .75rem;border-radius:10px;color:#d3dcee;text-decoration:none;font-size:.93rem;font-weight:500;transition:background-color .18s cubic-bezier(.16,1,.3,1),color .18s}.ds-item .ds-icon{color:#8fa3c7}.ds-item:hover{background:rgba(255,255,255,.06);color:#fff}.ds-item:hover .ds-icon{color:#fff}.ds-activo{background:#24467d;color:#fff;box-shadow:inset 0 0 0 1px rgba(233,211,152,.25)}.ds-activo .ds-icon{color:#e9d398}.ds-item:focus-visible{box-shadow:0 0 0 3px rgba(201,161,59,.45);outline:none}"
+    },
+    {
+      "name": "Badges de estado",
+      "kind": "chip",
+      "refersTo": "badge-ok",
+      "description": "Confirmado lleva anillo y punto dorados (el sello de la fila); anulado en rojo; aviso en naranja.",
+      "html": "<span class=\"ds-badge ds-ok\">Confirmado</span> <span class=\"ds-badge ds-mal\">Anulado</span> <span class=\"ds-badge ds-aviso\">Pendiente</span>",
+      "css": ".ds-badge{display:inline-flex;align-items:center;gap:.3rem;font-size:.74rem;font-weight:650;padding:.16rem .58rem;border-radius:999px}.ds-ok{background:#f1f4fa;color:#1b3561;box-shadow:inset 0 0 0 1px #c9a13b}.ds-ok::before{content:\"\";width:.42rem;height:.42rem;border-radius:50%;background:#c9a13b}.ds-mal{background:#fdecea;color:#b42318}.ds-aviso{background:#fdf1e3;color:#b45f05}"
+    },
+    {
+      "name": "KPI con banda de clase",
+      "kind": "card",
+      "refersTo": "kpi",
+      "description": "Saldo clave: banda naranja para aportaciones, azul para depósitos; el destacado invierte a marino.",
+      "html": "<div class=\"ds-kpis\"><div class=\"ds-kpi ds-destacado ds-aport\"><div class=\"ds-etq\">Aportaciones acumuladas</div><div class=\"ds-valor\">L 184,250.00</div><div class=\"ds-det\">Al cierre del mes anterior: L 176,000.00</div></div><div class=\"ds-kpi ds-dep\"><div class=\"ds-etq\">Depósitos reembolsables</div><div class=\"ds-valor\">L 42,800.00</div><div class=\"ds-det\">Al cierre del mes anterior: L 40,100.00</div></div></div>",
+      "css": ".ds-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:1rem}.ds-kpi{background:#fff;border:1px solid #dbe2ec;border-radius:12px;padding:1.05rem 1.15rem 1rem;box-shadow:0 1px 2px rgba(19,40,75,.05),0 4px 14px -6px rgba(19,40,75,.12)}.ds-etq{font-size:.82rem;color:#45526b;font-weight:550}.ds-valor{font-size:1.55rem;font-weight:700;margin-top:.35rem;font-variant-numeric:tabular-nums;color:#13284b;letter-spacing:-.015em}.ds-det{font-size:.8rem;color:#6b778d;margin-top:.2rem;font-variant-numeric:tabular-nums}.ds-dep{box-shadow:inset 0 3px 0 #1f6fd1,0 1px 2px rgba(19,40,75,.05),0 4px 14px -6px rgba(19,40,75,.12)}.ds-destacado{background:#13284b;border-color:#13284b}.ds-destacado .ds-valor{color:#fff}.ds-destacado .ds-etq,.ds-destacado .ds-det{color:#b9c6de}.ds-destacado.ds-aport{box-shadow:inset 0 3px 0 #e8800f,0 2px 4px rgba(19,40,75,.06),0 12px 32px -12px rgba(19,40,75,.28)}"
+    },
+    {
+      "name": "Tabla de operaciones",
+      "kind": "custom",
+      "refersTo": "tabla-encabezado",
+      "description": "Encabezado marino-50, montos tabulares a la derecha, marcador de clase y fila anulada tachada.",
+      "html": "<table class=\"ds-tabla\"><thead><tr><th>Operación</th><th class=\"ds-num\">Monto</th><th>Tipo</th></tr></thead><tbody><tr><td>OP-000124</td><td class=\"ds-num\">L 1,250.00</td><td><span class=\"ds-tipo ds-t-ap\">Aportación</span></td></tr><tr class=\"ds-anulado\"><td>OP-000123</td><td class=\"ds-num\">L 500.00</td><td><span class=\"ds-tipo ds-t-de\">Depósito</span></td></tr></tbody></table>",
+      "css": ".ds-tabla{width:100%;border-collapse:collapse;font-size:.9rem;font-variant-numeric:tabular-nums}.ds-tabla th,.ds-tabla td{padding:.62rem .7rem;border-bottom:1px solid #dbe2ec;text-align:left}.ds-tabla th{font-size:.78rem;color:#1b3561;font-weight:650;background:#f1f4fa;border-bottom-color:#c3cddd}.ds-tabla th:first-child{border-top-left-radius:8px}.ds-tabla th:last-child{border-top-right-radius:8px}.ds-tabla tbody tr:hover{background:#f8fafd}.ds-tabla .ds-num{text-align:right;white-space:nowrap}.ds-tipo{display:inline-flex;align-items:center;gap:.45rem}.ds-tipo::before{content:\"\";width:.6rem;height:.6rem;border-radius:2px}.ds-t-ap::before{background:#e8800f}.ds-t-de::before{background:#1f6fd1}.ds-anulado td{color:#6b778d;text-decoration:line-through;text-decoration-color:rgba(180,35,24,.5)}"
+    },
+    {
+      "name": "Encabezado de recibo sellado",
+      "kind": "custom",
+      "refersTo": "recibo",
+      "description": "Constancia oficial: sello con aro dorado, línea marino de 2px con filete dorado, número y monto tabulares.",
+      "html": "<div class=\"ds-recibo\"><div class=\"ds-rhead\"><div class=\"ds-sellado\"><span class=\"ds-sello56\"></span><div class=\"ds-coop\">Caja de Ahorro Unión y Esfuerzo</div></div><div class=\"ds-rnum\"><span>Recibo de aportación</span><b>N.º OP-000124</b></div></div><div class=\"ds-monto\">L 1,250.00</div><div class=\"ds-letras\">La suma de: <strong>mil doscientos cincuenta lempiras exactos</strong></div></div>",
+      "css": ".ds-recibo{max-width:760px;background:#fff;border:1px solid #dbe2ec;border-radius:12px;padding:2rem 2.2rem;box-shadow:0 1px 2px rgba(19,40,75,.05),0 4px 14px -6px rgba(19,40,75,.12);color:#15233d}.ds-rhead{display:flex;justify-content:space-between;align-items:center;gap:1rem;border-bottom:2px solid #13284b;padding-bottom:1rem;margin-bottom:1.2rem;position:relative}.ds-rhead::after{content:\"\";position:absolute;left:0;right:0;bottom:-6px;border-bottom:1px solid #c9a13b}.ds-sellado{display:flex;align-items:center;gap:1rem}.ds-sello56{width:56px;height:56px;border-radius:50%;background:#fff;box-shadow:0 0 0 2px #c9a13b;flex:none}.ds-coop{font-weight:750;font-size:1.12rem;color:#13284b}.ds-rnum{text-align:right;font-size:.85rem}.ds-rnum b{display:block;font-size:1.3rem;color:#13284b;font-variant-numeric:tabular-nums}.ds-monto{font-size:1.8rem;font-weight:750;text-align:right;color:#13284b;font-variant-numeric:tabular-nums}.ds-letras{background:#f1f4fa;padding:.65rem .85rem;border-radius:8px;font-size:.88rem;margin-top:1rem}"
+    }
+  ],
+  "narrative": {
+    "northStar": "El Sello Institucional",
+    "overview": "El sistema se firma con el sello oficial de CAUNE: un disco circular con la familia dibujada y un aro dorado. Ese sello no es decoración; es la marca de constancia. Aparece en el riel lateral (72px sobre disco blanco con aro dorado), en el ingreso (132px, montado sobre la tarjeta), en el encabezado de toda constancia (56px) y, girado como un timbre de goma, en la línea de firmas de cada recibo confirmado (104px). Quien abre el sistema reconoce su caja de ahorro de inmediato, y quien recibe un recibo ve que la operación quedó sellada.\n\nEl mundo es el de una caja de ahorro en papel trasladada a pantalla: riel azul marino con filete dorado, superficie clara ligeramente azulada, tarjetas blancas con bordes finos, cifras tabulares alineadas a la derecha. La densidad es de oficina: tablas compactas, formularios en rejilla, una sola acción primaria por bloque. El color tiene significado contable: azul Unión para actuar y para depósitos, naranja Esfuerzo para aportaciones, dorado sólo como aro, filete y foco.\n\nSe rechaza explícitamente el panel SaaS genérico gris con un acento verde. Las correcciones se muestran como anulación visible (tachado, timbre «ANULADO»), nunca como desaparición.",
+    "keyCharacteristics": [
+      "El sello circular con aro dorado identifica cada constancia oficial.",
+      "Riel lateral azul marino fijo (264px) con filete dorado de 1px.",
+      "Codificación de clase: naranja = aportación, azul = depósito, en bandas de KPI y marcadores de tabla.",
+      "Cifras siempre tabulares y alineadas a la derecha.",
+      "Iconos SVG de trazo (1.75px, extremos redondeados) heredando `currentColor`.",
+      "Profundidad baja y difusa; el dorado es línea, nunca superficie."
+    ],
+    "rules": [
+      {
+        "name": "The Aro Rule",
+        "body": "El dorado es línea, anillo o punto: aros del sello, filetes de 1px, el punto del badge confirmado y el foco. Nunca es fondo de superficie, color de texto ni relleno de botón.",
+        "section": "colors"
+      },
+      {
+        "name": "The Clase Contable Rule",
+        "body": "Naranja significa aportación y azul significa depósito, siempre. Un nuevo tipo de movimiento hereda el color de su clase; no se inventa un tercer acento.",
+        "section": "colors"
+      },
+      {
+        "name": "The Una Acción Rule",
+        "body": "Azul Unión relleno aparece una vez por bloque: la acción primaria. Las demás acciones son botones blancos con borde.",
+        "section": "colors"
+      },
+      {
+        "name": "The Cifra Tabular Rule",
+        "body": "Todo monto, número de operación, fecha en tabla y valor de KPI usa `font-variant-numeric: tabular-nums`; los montos van alineados a la derecha y sin corte de línea.",
+        "section": "typography"
+      },
+      {
+        "name": "The Aro Sin Desenfoque Rule",
+        "body": "El anillo del sello y el foco son sombras de 0 desenfoque; la única sombra difusa alrededor de un sello es la caída suave bajo el logo del riel y del ingreso.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do poner el sello con aro dorado de 2px en el encabezado de toda constancia nueva (recibos, estados de cuenta, operaciones confirmadas).",
+      "Do usar naranja Esfuerzo para aportaciones y azul Unión para depósitos en bandas de KPI y marcadores de tabla.",
+      "Do alinear a la derecha y en cifras tabulares todo monto, con formato L 1,250.00.",
+      "Do dibujar iconos como símbolos SVG de trazo de 1.75px con extremos redondeados, heredando el color del texto.",
+      "Do mostrar las anulaciones de forma visible: fila tachada en tablas, timbre «ANULADO» en el recibo, badge rojo.",
+      "Do usar el anillo dorado de foco (3px, 45%) en todo elemento interactivo y respetar `prefers-reduced-motion`."
+    ],
+    "donts": [
+      "Don't construir el panel SaaS genérico gris con acento verde.",
+      "Don't usar el dorado como fondo de superficie, texto o relleno de botón.",
+      "Don't introducir un tercer color de acento para tipos de movimiento.",
+      "Don't usar sombras duras desplazadas sin desenfoque; sobre superficies claras la sombra es difusa y teñida de marino.",
+      "Don't usar etiquetas en mayúsculas pequeñas fuera de los separadores de grupo del riel.",
+      "Don't recolorear, deformar ni recortar el logo oficial; se muestra completo dentro de su disco blanco (el único giro admitido es el del sello confirmado, -8°)."
+    ]
+  }
+}

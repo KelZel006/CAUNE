@@ -1,0 +1,13 @@
+{% extends "base.html" %}{% load caune %}
+{% block titulo %}Anular {{ m.numero_operacion }}{% endblock %}
+{% block encabezado %}Anular operación {{ m.numero_operacion }}{% endblock %}
+{% block contenido %}
+<div class="card" style="max-width:760px">
+  <div class="aviso-anulado">Va a anular <strong>{{ m.tipo.nombre }}</strong> de <strong>{{ m.monto|lempiras }}</strong> del {{ m.fecha|fecha }} a nombre de {{ m.afiliado.codigo }} · {{ m.afiliado.nombre_completo }}.
+    La operación no se elimina: queda visible como «anulada», deja de sumar en los saldos y la anulación se registra en auditoría. Esta acción no se puede revertir.</div>
+  <form method="post" novalidate>{% csrf_token %}
+    {% include "partials/campos.html" %}
+    <div class="form-pie"><a class="btn" href="{% url 'aportaciones:detalle' m.pk %}">Cancelar</a><button class="btn peligro" type="submit">Anular operación</button></div>
+  </form>
+</div>
+{% endblock %}

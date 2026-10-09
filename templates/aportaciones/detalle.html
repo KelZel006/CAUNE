@@ -1,0 +1,30 @@
+{% extends "base.html" %}{% load caune static %}
+{% block titulo %}{{ object.numero_operacion }}{% endblock %}
+{% block encabezado %}Operación {{ object.numero_operacion }}{% endblock %}
+{% block contenido %}
+<div class="acciones" style="margin-bottom:1rem">
+  <a class="btn" href="{% url 'aportaciones:lista' %}">{% icono "volver" %}Movimientos</a>
+  <a class="btn primario" href="{% url 'aportaciones:recibo' object.pk %}">{% icono "recibo" %}Ver recibo</a>
+  <a class="btn" href="{% url 'aportaciones:recibo' object.pk %}?formato=pdf" target="_blank">{% icono "descargar" %}Recibo PDF</a>
+  {% if perms.aportaciones.anular_movimientoafiliado and object.estado == 'CONFIRMADO' %}<a class="btn peligro" href="{% url 'aportaciones:anular' object.pk %}">Anular</a>{% endif %}
+</div>
+{% if object.estado == 'ANULADO' %}
+<div class="aviso-anulado"><strong>Operación anulada</strong> el {{ object.anulado_en|date:"d/m/Y H:i" }} por {{ object.anulado_por }}. Motivo: {{ object.motivo_anulacion }}<br><span class="small">No suma en saldos ni reportes; se conserva para trazabilidad.</span></div>
+{% endif %}
+<div class="card">
+  <div class="card-head sellado" style="justify-content:flex-start"><img src="{% static 'img/logo-caune-192.png' %}" alt="" width="56" height="56"><div><h2 style="margin:0">{{ object.tipo.nombre }} · {{ object.monto_con_signo|lempiras }}</h2><span class="small muted">{% if object.estado == 'ANULADO' %}<span class="badge mal">Anulada</span>{% else %}<span class="badge ok">Confirmada y sellada</span>{% endif %} · {{ object.afiliado.codigo }} · {{ object.fecha|fecha }}</span></div></div>
+  <dl class="datos">
+    <div><dt>Número de operación</dt><dd>{{ object.numero_operacion }}</dd></div>
+    <div><dt>Fecha</dt><dd>{{ object.fecha|fecha }}</dd></div>
+    <div><dt>Afiliado</dt><dd><a href="{% url 'afiliados:detalle' object.afiliado.pk %}">{{ object.afiliado.codigo }} · {{ object.afiliado.nombre_completo }}</a></dd></div>
+    <div><dt>Tipo</dt><dd>{{ object.tipo.nombre }}</dd><dd class="muted small" style="font-weight:500">{{ object.tipo.get_clase_display }}</dd></div>
+    <div><dt>Monto</dt><dd style="font-size:1.25rem">{{ object.monto_con_signo|lempiras }}</dd></div>
+    <div><dt>Método de pago</dt><dd>{{ object.get_metodo_pago_display }}</dd></div>
+    <div><dt>Caja o cuenta</dt><dd>{{ object.cuenta_fondo }}</dd></div>
+    <div><dt>Referencia</dt><dd>{{ object.referencia|default:"—" }}</dd></div>
+    <div style="grid-column:1/-1"><dt>Observación</dt><dd>{{ object.observacion|default:"—" }}</dd></div>
+    <div><dt>Registrado por</dt><dd>{{ object.registrado_por }}</dd></div>
+    <div><dt>Registrado el</dt><dd>{{ object.registrado_en|date:"d/m/Y H:i:s" }}</dd></div>
+  </dl>
+</div>
+{% endblock %}

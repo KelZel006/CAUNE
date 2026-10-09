@@ -1,0 +1,29 @@
+{% load static %}<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#13284b">
+  <title>Ingresar · CAUNE</title>
+  <link rel="icon" type="image/png" href="{% static 'img/favicon-64.png' %}">
+  <link rel="stylesheet" href="{% static 'css/caune.css' %}">
+</head>
+<body>
+<div class="login">
+  <div class="card" style="margin-top:4rem">
+    <div class="marca">
+      <img src="{% static 'img/logo-caune-512.png' %}" alt="Sello de la Caja de Ahorro Unión y Esfuerzo" width="132" height="132">
+      <strong>{{ coop.nombre }}</strong>
+      <span class="muted">Sistema de gestión administrativa y financiera</span>
+    </div>
+    {% if form.errors %}<div class="errores-form" role="alert">Usuario o contraseña incorrectos. Después de 5 intentos fallidos, el acceso se bloquea durante una hora.</div>{% endif %}
+    <form method="post">
+      {% csrf_token %}
+      <div class="campo" style="margin-bottom:1rem"><label for="id_username">Usuario</label>{{ form.username }}</div>
+      <div class="campo" style="margin-bottom:1.5rem"><label for="id_password">Contraseña</label>{{ form.password }}</div>
+      <input type="hidden" name="next" value="{{ next }}">
+      <button class="btn primario" type="submit" style="width:100%">Ingresar</button>
+    </form>
+  </div>
+</div>
+</body>
+</html>

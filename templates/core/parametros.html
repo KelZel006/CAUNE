@@ -1,0 +1,24 @@
+{% extends "base.html" %}{% load caune %}
+{% block titulo %}Parámetros{% endblock %}
+{% block encabezado %}Datos generales y reglas de operación{% endblock %}
+{% block contenido %}
+<div class="card">
+  <div class="tabla-wrap"><table class="tabla">
+    <thead><tr><th>Grupo</th><th>Parámetro</th><th>Valor</th><th>Última modificación</th><th></th></tr></thead>
+    <tbody>{% for p in object_list %}
+      <tr><td><span class="badge {% if p.grupo == 'OPERACION' %}aviso{% else %}info{% endif %}">{{ p.get_grupo_display }}</span></td>
+        <td><strong>{{ p.nombre }}</strong>{% if p.descripcion %}<div class="muted small">{{ p.descripcion }}</div>{% endif %}</td>
+        <td>{{ p.valor_legible|default:"—" }}</td>
+        <td class="small muted">{{ p.actualizado_en|date:"d/m/Y H:i" }}{% if p.actualizado_por %} · {{ p.actualizado_por }}{% endif %}</td>
+        <td>{% if perms.core.change_parametro %}<a class="btn sm" href="{% url 'core:parametro_editar' p.pk %}">Modificar</a>{% endif %}</td></tr>
+    {% endfor %}</tbody>
+  </table></div>
+</div>
+<div class="card"><h2>Historial de cambios</h2>
+  <div class="tabla-wrap"><table class="tabla">
+    <thead><tr><th>Fecha</th><th>Parámetro</th><th>Anterior</th><th>Nuevo</th><th>Motivo</th><th>Usuario</th></tr></thead>
+    <tbody>{% for h in historial %}<tr><td class="nowrap">{{ h.cambiado_en|date:"d/m/Y H:i" }}</td><td>{{ h.parametro.nombre }}</td><td>{{ h.valor_anterior|default:"—" }}</td><td>{{ h.valor_nuevo|default:"—" }}</td><td>{{ h.motivo|default:"—" }}</td><td>{{ h.cambiado_por }}</td></tr>
+    {% empty %}<tr><td colspan="6" class="vacio">Sin cambios registrados.</td></tr>{% endfor %}</tbody>
+  </table></div>
+</div>
+{% endblock %}

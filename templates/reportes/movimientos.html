@@ -1,0 +1,31 @@
+{% extends "base.html" %}{% load caune %}
+{% block titulo %}Aportaciones y depósitos{% endblock %}
+{% block encabezado %}Reporte · Aportaciones y depósitos{% endblock %}
+{% block contenido %}
+<div class="card no-imprimir">
+  <form method="get" class="filtros" style="margin:0">
+    {% for campo in form %}<div class="campo"><label for="{{ campo.id_for_label }}">{{ campo.label }}</label>{{ campo }}</div>{% endfor %}
+    {% if form.non_field_errors %}<div class="errores-form" style="grid-column:1/-1">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+    <div class="acciones"><a class="btn" href="{% url 'reportes:indice' %}">‹ Reportes</a><a class="btn" href="{% url_exportar 'pdf' %}" target="_blank">PDF</a><a class="btn" href="{% url_exportar 'xlsx' %}">Excel</a><button class="btn" type="button" onclick="window.print()">Imprimir</button><button class="btn primario">Filtrar</button></div>
+  </form>
+</div>
+<div class="kpis">
+  <div class="kpi destacado"><div class="etq">Neto aportaciones</div><div class="valor">{{ neto.aportaciones|lempiras }}</div></div>
+  <div class="kpi"><div class="etq">Neto depósitos</div><div class="valor">{{ neto.depositos|lempiras }}</div><div class="det">Depósitos menos retiros</div></div>
+  <div class="kpi"><div class="etq">Operaciones anuladas</div><div class="valor">{{ anulados.n }}</div><div class="det">{{ anulados.total|lempiras }} · no suman</div></div>
+</div>
+<div class="card"><h2>Resumen por tipo (confirmados)</h2>
+  <div class="tabla-wrap"><table class="tabla">
+    <thead><tr><th>Tipo</th><th>Clase</th><th class="num">Operaciones</th><th class="num">Total</th></tr></thead>
+    <tbody>{% for r in resumen %}<tr><td>{{ r.tipo__nombre }}</td><td>{% if r.tipo__clase == 'APORTACION' %}Aportación{% else %}Depósito reembolsable{% endif %}{% if r.tipo__naturaleza == 'SALIDA' %} · retiro{% endif %}</td><td class="num">{{ r.cantidad }}</td><td class="num">{{ r.total|lempiras }}</td></tr>
+    {% empty %}<tr><td colspan="4" class="vacio">Sin operaciones confirmadas.</td></tr>{% endfor %}</tbody>
+  </table></div>
+</div>
+<div class="card"><h2>Detalle ({{ movimientos|length }} operaciones)</h2>
+  <div class="tabla-wrap"><table class="tabla">
+    <thead><tr><th>Operación</th><th>Fecha</th><th>Afiliado</th><th>Tipo</th><th>Método</th><th>Caja/cuenta</th><th>Referencia</th><th class="num">Monto</th><th>Estado</th></tr></thead>
+    <tbody>{% for m in movimientos %}<tr class="{% if m.estado == 'ANULADO' %}anulado{% endif %}"><td class="sin-tachar"><a href="{% url 'aportaciones:detalle' m.pk %}">{{ m.numero_operacion }}</a></td><td>{{ m.fecha|fecha }}</td><td>{{ m.afiliado.codigo }} · {{ m.afiliado.nombre_completo }}</td><td><span class="tipo tipo-{{ m.tipo.clase|lower }}">{{ m.tipo.nombre }}</span></td><td class="small">{{ m.get_metodo_pago_display }}</td><td class="small">{{ m.cuenta_fondo.nombre }}</td><td class="small">{{ m.referencia|default:"—" }}</td><td class="num">{{ m.monto_con_signo|lempiras }}</td><td class="sin-tachar">{{ m.get_estado_display }}</td></tr>
+    {% empty %}<tr><td colspan="9" class="vacio">Sin operaciones con estos criterios.</td></tr>{% endfor %}</tbody>
+  </table></div>
+</div>
+{% endblock %}

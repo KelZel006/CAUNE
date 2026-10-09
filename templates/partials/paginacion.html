@@ -1,0 +1,12 @@
+{% if page_obj %}
+<div class="paginacion">
+  <span>{{ page_obj.start_index }}–{{ page_obj.end_index }} de {{ page_obj.paginator.count }} registros</span>
+  {% if page_obj.has_other_pages %}
+  <div class="acciones">
+    {% if page_obj.has_previous %}<a class="btn sm" href="?{% if params_sin_pagina %}{{ params_sin_pagina }}&{% endif %}page={{ page_obj.previous_page_number }}">‹ Anterior</a>{% endif %}
+    <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}<a class="btn sm" href="?{% if params_sin_pagina %}{{ params_sin_pagina }}&{% endif %}page={{ page_obj.next_page_number }}">Siguiente ›</a>{% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endif %}
