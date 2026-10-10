@@ -192,6 +192,8 @@ table.tabla { width: 100%; border-collapse: collapse; font-size: .9rem; }
 /* ---------- formularios ---------- */
 .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.05rem 1.25rem; }
 .campo { display: flex; flex-direction: column; gap: .35rem; }
+/* El atributo hidden debe ganarle a display:flex (campos que dependen de otra opción del formulario). */
+[hidden] { display: none !important; }
 .campo.ancho { grid-column: 1 / -1; }
 .campo label { font-size: .85rem; font-weight: 600; color: var(--marino-800); }
 .campo .req { color: var(--esfuerzo-oscuro); }

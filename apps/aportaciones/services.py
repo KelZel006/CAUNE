@@ -114,13 +114,15 @@ def _validar_monto(monto):
 
 
 def registrar_movimiento(*, afiliado, tipo, fecha, monto, metodo_pago, cuenta_fondo, usuario,
-                         clave_idempotencia=None, referencia="", observacion=""):
+                         clave_idempotencia=None, referencia="", observacion="", automatico=False):
     """Registra un movimiento confirmado. Devuelve (movimiento, creado).
 
     Si la misma clave de idempotencia ya fue usada (doble clic, reenvío del formulario),
     devuelve el movimiento existente sin crear otro.
+    `automatico=True`: lo genera otra operación ya autorizada (por ejemplo, el excedente de un pago de préstamo),
+    así que no se exige el permiso de registrar aportaciones.
     """
-    if not usuario.has_perm("aportaciones.add_movimientoafiliado"):
+    if not automatico and not usuario.has_perm("aportaciones.add_movimientoafiliado"):
         raise ValidationError("No tiene permiso para registrar movimientos.")
     if clave_idempotencia is not None:
         existente = MovimientoAfiliado.objects.filter(clave_idempotencia=clave_idempotencia).first()
@@ -190,9 +192,14 @@ def registrar_movimiento(*, afiliado, tipo, fecha, monto, metodo_pago, cuenta_fo
 
 
 @transaction.atomic
-def anular_movimiento(movimiento, *, motivo, usuario):
-    if not usuario.has_perm("aportaciones.anular_movimientoafiliado"):
+def anular_movimiento(movimiento, *, motivo, usuario, automatico=False):
+    """Anula un movimiento. `automatico=True` cuando lo anula la operación que lo generó (pago o entrega)."""
+    if not automatico and not usuario.has_perm("aportaciones.anular_movimientoafiliado"):
         raise ValidationError("No tiene permiso para anular movimientos.")
+    if not automatico:
+        origen = _operacion_origen(movimiento)
+        if origen:
+            raise ValidationError(f"Este movimiento lo generó {origen}. Anule esa operación y este se anulará con ella.")
     motivo = (motivo or "").strip()
     if len(motivo) < 10:
         raise ValidationError({"motivo": "Explique el motivo de la anulación (mínimo 10 caracteres)."})
@@ -217,6 +224,17 @@ def anular_movimiento(movimiento, *, motivo, usuario):
                         descripcion=f"Anulación de {movimiento.numero_operacion}. Motivo: {motivo}",
                         antes=antes, despues=auditoria.instantanea(movimiento))
     return movimiento
+
+
+def _operacion_origen(movimiento):
+    """Texto de la operación que generó el movimiento (pago de préstamo o entrega de ganancias), si la hay."""
+    pago = getattr(movimiento, "pago_prestamo_origen", None) if movimiento.pk else None
+    if pago is not None:
+        return f"el pago {pago.numero_recibo} del préstamo {pago.prestamo.numero}"
+    entrega = getattr(movimiento, "pago_ganancia", None) if movimiento.pk else None
+    if entrega is not None:
+        return f"la entrega de ganancias {entrega.numero}"
+    return ""
 
 
 # --------------------------------------------------------------------------- estado de cuenta
@@ -274,6 +292,15 @@ TIPOS_INICIALES = [
          participa_distribucion=False, descripcion="Ahorro del afiliado que puede retirar."),
     dict(codigo="RDEP", nombre="Retiro de depósito", clase=Clase.DEPOSITO, naturaleza=Naturaleza.SALIDA,
          participa_distribucion=False, descripcion="Devolución de depósitos reembolsables al afiliado."),
+    dict(codigo="GAN", nombre="Ganancia capitalizada", clase=Clase.APORTACION, naturaleza=Naturaleza.ENTRADA,
+         participa_distribucion=True,
+         descripcion="Ganancias de una distribución que se suman a las aportaciones del afiliado."),
+    dict(codigo="EXP", nombre="Excedente de pago de préstamo", clase=Clase.APORTACION, naturaleza=Naturaleza.ENTRADA,
+         participa_distribucion=True,
+         descripcion="Lo que el afiliado paga de más en su préstamo se suma a sus aportaciones."),
+    dict(codigo="EXA", nombre="Excedente de préstamo avalado", clase=Clase.DEPOSITO, naturaleza=Naturaleza.ENTRADA,
+         participa_distribucion=False,
+         descripcion="Lo que un prestatario externo paga de más queda como depósito del afiliado que lo avala."),
 ]
 
 

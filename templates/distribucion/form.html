@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block titulo %}Calcular distribución{% endblock %}
+{% block encabezado %}Calcular distribución de ganancias{% endblock %}
+{% block contenido %}
+<div class="card" style="max-width:900px">
+  <p class="nota">El sistema calcula la utilidad del período y la reparte entre los afiliados según sus aportaciones ({{ config.base|lower }}; reserva {{ config.reserva }} %). El resultado queda como <strong>borrador</strong>: puede revisarlo y recalcularlo antes de aprobarlo. Nada se paga hasta que se apruebe.</p>
+  <form method="post" novalidate onsubmit="var b=this.querySelector('button[type=submit]');b.disabled=true;b.textContent='Calculando…';">{% csrf_token %}
+    {% include "partials/campos.html" %}
+    <div class="form-pie"><a class="btn" href="{% url 'distribucion:lista' %}">Cancelar</a><button class="btn primario" type="submit">Calcular</button></div>
+  </form>
+</div>
+{% endblock %}

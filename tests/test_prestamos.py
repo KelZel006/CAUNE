@@ -12,6 +12,10 @@ from apps.prestamos import services as ps
 from apps.prestamos.models import AplicacionPago, CuotaAmortizacion, PagoPrestamo, Prestamo
 
 
+# Estas pruebas verifican intereses y capital; la mora tiene sus propias pruebas en test_mora.py.
+pytestmark = pytest.mark.usefixtures("sin_mora")
+
+
 @pytest.fixture(autouse=True)
 def _caja_por_defecto(caja):
     return caja
@@ -31,11 +35,12 @@ def test_interno_usa_1_por_ciento_y_externo_5(afiliado, nuevo_prestamo, tesorero
     externo = ps.aprobar_prestamo(
         usuario=tesorero, tipo_prestatario="EXTERNO",
         externo={"nombre_completo": "Prestatario Externo Ficticio", "identidad": "8888-1990-00001"},
-        monto_solicitado="2000", monto_aprobado="2000", plazo=4, metodo_amortizacion="CAPITAL_FIJO",
+        afiliado_responsable=afiliado, monto_solicitado="2000", monto_aprobado="2000", plazo=4, metodo_amortizacion="CAPITAL_FIJO",
         fecha_aprobacion=hoy, fecha_primer_vencimiento=hoy + timedelta(days=30))
     assert externo.tasa == D("5.00") and externo.prestatario_externo.identidad == "8888199000001"
     assert externo.cuotas.first().interes == D("100.00")
-    assert externo.numero == "PREST-0002" and interno.numero == "PREST-0001"
+    anio = hoy.year
+    assert interno.numero == f"1{anio}001" and externo.numero == f"2{anio}002"
 
 
 def test_cambio_de_tasa_no_afecta_prestamos_existentes(afiliado, nuevo_prestamo, admin_caune):
@@ -139,7 +144,8 @@ def test_pago_parcial_cubre_interes_primero(afiliado, nuevo_prestamo, tesorero, 
     pagar(p, "5", tesorero, caja)
     r = ps.resumen(p)
     assert r.cuotas[0].interes_pagado == D("5.00") and r.cuotas[0].capital_pagado == 0
-    assert r.cuotas[0].estado == "PARCIAL" and r.saldo_capital == D("1000.00")
+    # Parcial y ya vencida: se muestra como vencida.
+    assert r.cuotas[0].estado == "VENCIDA" and r.saldo_capital == D("1000.00")
     pagar(p, "300", tesorero, caja)
     r = ps.resumen(p)
     assert r.cuotas[0].interes_pagado == D("10.00") and r.cuotas[0].capital_pagado == D("295.00")
@@ -161,12 +167,15 @@ def test_pago_que_cubre_varias_cuotas_y_cancela(afiliado, nuevo_prestamo, tesore
     assert p.estado == "VIGENTE" and ps.resumen(p).saldo_capital == D("1000.00")
 
 
-def test_sobrepago_rechazado(afiliado, nuevo_prestamo, tesorero, caja):
+def test_sobrepago_de_afiliado_va_a_aportaciones(afiliado, nuevo_prestamo, tesorero, caja):
+    from apps.aportaciones.services import saldos_afiliado
     p = nuevo_prestamo(afiliado)
-    with pytest.raises(ValidationError) as e:
-        pagar(p, "1015.03", tesorero, caja)
-    assert "monto" in e.value.message_dict
-    assert PagoPrestamo.objects.count() == 0
+    pago = pagar(p, "1015.03", tesorero, caja)  # debe 1,015.02
+    assert (pago.monto, pago.excedente) == (D("1015.02"), D("0.01"))
+    assert pago.movimiento_excedente.tipo.codigo == "EXP"
+    assert saldos_afiliado(afiliado)["aportaciones"] == D("0.01")
+    p.refresh_from_db()
+    assert p.estado == "PAGADO"
 
 
 def test_abono_extraordinario_no_cambia_el_cuadro(afiliado, nuevo_prestamo, tesorero, caja):
@@ -183,8 +192,9 @@ def test_abono_extraordinario_no_cambia_el_cuadro(afiliado, nuevo_prestamo, teso
     assert r.saldo_capital == D("1500.00")
     # Los intereses del cuadro siguen exigibles (decisión P5: las cuotas se mantienen)
     assert r.intereses_pendientes == sum(c[2] for c in cuadro)
-    with pytest.raises(ValidationError):
-        pagar(p, "1500.01", tesorero, caja, tipo="ABONO")
+    # Lo que el afiliado abona de más va a sus aportaciones.
+    ultimo = pagar(p, "1500.01", tesorero, caja, tipo="ABONO")
+    assert (ultimo.monto, ultimo.excedente) == (D("1500.00"), D("0.01"))
 
 
 def test_saldo_despues_de_cada_pago(afiliado, nuevo_prestamo, tesorero, caja):

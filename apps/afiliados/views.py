@@ -114,6 +114,11 @@ class AfiliadoDetailView(PermisoMixin, DetailView):
         if usuario.has_perm("prestamos.view_prestamo"):
             from apps.prestamos.services import anotar_saldos
             ctx["prestamos"] = anotar_saldos(self.object.prestamos.order_by("-fecha_aprobacion"))
+            ctx["respaldados"] = (self.object.prestamos_respaldados.exclude(estado="ANULADO")
+                                  .select_related("prestatario_externo").order_by("-fecha_aprobacion"))
+        if usuario.has_perm("distribucion.view_distribucion"):
+            from apps.distribucion.services import ganancias_afiliado
+            ctx["ganancias"] = ganancias_afiliado(self.object)
         return ctx
 
 

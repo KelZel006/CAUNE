@@ -1,0 +1,20 @@
+{% extends "base.html" %}{% load caune %}
+{% block titulo %}Entregar ganancias {{ dist.codigo }}{% endblock %}
+{% block encabezado %}Pagar o capitalizar ganancias · {{ dist.codigo }}{% endblock %}
+{% block contenido %}
+<div class="card" style="max-width:900px">
+  <ul class="lista-simple" style="margin-bottom:1rem">
+    <li><strong>Pago al afiliado:</strong> el dinero sale de la caja o cuenta elegida. El sistema verifica que haya saldo suficiente.</li>
+    <li><strong>Capitalización:</strong> el dinero no sale; se acredita a la cuenta del afiliado como «Ganancia capitalizada» (depósito que puede retirar después).</li>
+  </ul>
+  {% if pendientes %}
+  <form method="post" novalidate onsubmit="var b=this.querySelector('button[type=submit]');b.disabled=true;b.textContent='Guardando…';">{% csrf_token %}
+    {% include "partials/campos.html" %}
+    <div class="form-pie"><a class="btn" href="{% url 'distribucion:detalle' dist.pk %}">Cancelar</a><button class="btn primario" type="submit">Confirmar y registrar</button></div>
+  </form>
+  {% else %}
+  <p class="muted">Todas las ganancias de esta distribución ya se entregaron.</p>
+  <a class="btn" href="{% url 'distribucion:detalle' dist.pk %}">{% icono "volver" %}Volver</a>
+  {% endif %}
+</div>
+{% endblock %}

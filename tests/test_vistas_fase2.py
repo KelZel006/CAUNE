@@ -12,6 +12,9 @@ from apps.actividades import services as acs
 from apps.prestamos import services as ps
 from apps.prestamos.models import PagoPrestamo, Prestamo
 
+# Estas pruebas verifican intereses y capital; la mora tiene sus propias pruebas en test_mora.py.
+pytestmark = pytest.mark.usefixtures("sin_mora")
+
 
 def test_flujo_prestamo_por_la_web(client, tesorero, afiliado, caja, hoy):
     client.force_login(tesorero)
@@ -51,7 +54,7 @@ def test_flujo_prestamo_por_la_web(client, tesorero, afiliado, caja, hoy):
     assert hoja.max_row == 5 + 2  # encabezado de 4 filas + títulos + 2 cuotas
 
 
-def test_formulario_prestamo_externo_y_errores(client, tesorero, hoy):
+def test_formulario_prestamo_externo_y_errores(client, tesorero, afiliado, hoy):
     client.force_login(tesorero)
     base = {"tipo_prestatario": "EXTERNO", "monto_solicitado": "500", "monto_aprobado": "800",
             "metodo_amortizacion": "CAPITAL_FIJO", "plazo": "2", "fecha_aprobacion": hoy.isoformat(),
@@ -59,9 +62,11 @@ def test_formulario_prestamo_externo_y_errores(client, tesorero, hoy):
     r = client.post(reverse("prestamos:crear"), base)
     errores = r.context["form"].errors
     assert r.status_code == 200 and "monto_aprobado" in errores and "externo_nombre" in errores
+    assert "afiliado_responsable" in errores
     ok = client.post(reverse("prestamos:crear"), {**base, "monto_aprobado": "500",
                                                   "externo_nombre": "Persona Externa Ficticia",
-                                                  "externo_identidad": "8888199000002"})
+                                                  "externo_identidad": "8888199000002",
+                                                  "afiliado_responsable": afiliado.pk})
     assert ok.status_code == 302 and Prestamo.objects.get().tasa == D("5.00")
 
 
@@ -103,7 +108,7 @@ def test_reportes_fase2_coinciden_con_servicios(client, tesorero, afiliado, nuev
     assert r.context["totales"][3] == ps.cartera_vigente()
     r = client.get(reverse("reportes:pagos"))
     assert r.context["resumen"] == [("Total cobrado", D("1507.51")), ("Capital recuperado", D("1497.51")),
-                                    ("Intereses cobrados", D("10.00"))]
+                                    ("Intereses cobrados", D("10.00")), ("Mora cobrada", D("0.00"))]
     assert r.context["resumen"][2][1] == ps.intereses_cobrados()
     r = client.get(reverse("reportes:resultados_actividades"))
     assert r.context["totales"][5] == D("-300.00") and r.context["totales"][6] == "Pérdida"

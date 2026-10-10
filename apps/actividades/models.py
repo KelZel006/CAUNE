@@ -5,6 +5,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q
 
+from apps.afiliados.models import Afiliado
 from apps.aportaciones.models import MetodoPago
 from apps.core.models import CuentaFondo
 
@@ -26,7 +27,10 @@ class Actividad(models.Model):
         ordering = ["-fecha_inicio", "codigo"]
         verbose_name = "actividad económica"
         verbose_name_plural = "actividades económicas"
-        permissions = [("cambiar_estado_actividad", "Puede cerrar o reabrir actividades")]
+        permissions = [
+            ("cambiar_estado_actividad", "Puede cerrar o reabrir actividades"),
+            ("gestionar_participacion", "Puede marcar afiliados que no participan en las ganancias de una actividad"),
+        ]
 
     def __str__(self):
         return f"{self.codigo} · {self.nombre}"
@@ -146,3 +150,25 @@ class MovimientoActividad(models.Model):
 
     def delete(self, *args, **kwargs):
         raise ValidationError("Los ingresos y gastos no se eliminan; se anulan con motivo.")
+
+
+class ExclusionActividad(models.Model):
+    """Afiliado que NO participa en las ganancias (o pérdidas) de una actividad.
+
+    Sigue recibiendo su parte del resto de utilidades (intereses y otras actividades).
+    """
+
+    actividad = models.ForeignKey(Actividad, on_delete=models.PROTECT, related_name="exclusiones")
+    afiliado = models.ForeignKey(Afiliado, on_delete=models.PROTECT, related_name="exclusiones_actividad")
+    motivo = models.TextField()
+    registrado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
+    registrado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["afiliado__codigo"]
+        verbose_name = "afiliado excluido de una actividad"
+        verbose_name_plural = "afiliados excluidos de actividades"
+        constraints = [models.UniqueConstraint(fields=["actividad", "afiliado"], name="exclusion_actividad_unica")]
+
+    def __str__(self):
+        return f"{self.afiliado} no participa en {self.actividad}"

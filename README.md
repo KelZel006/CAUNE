@@ -5,8 +5,8 @@
 Sistema de gestión administrativa y financiera
 
 Aplicación web en Django 5.2 + PostgreSQL 16 para administrar afiliados, aportaciones, depósitos, préstamos,
-actividades económicas y distribución de ganancias. **Estado actual: Fase 2 (préstamos y actividades económicas).**
-Ver [docs/FASE1.md](docs/FASE1.md) y [docs/FASE2.md](docs/FASE2.md) para el alcance, las decisiones y los resultados de pruebas.
+actividades económicas y distribución de ganancias. **Estado actual: Fase 3 (caja y bancos, y distribución de ganancias).**
+Ver [docs/FASE1.md](docs/FASE1.md), [docs/FASE2.md](docs/FASE2.md) y [docs/FASE3.md](docs/FASE3.md) para el alcance, las decisiones y los resultados de pruebas.
 
 ## Estructura
 
@@ -18,8 +18,10 @@ caune/
 │   ├── afiliados/       Afiliados, cambios de estado, estado de cuenta
 │   ├── aportaciones/    Tipos de movimiento, aportaciones/depósitos/retiros, recibos, anulación
 │   ├── prestamos/       Préstamos, cuadro de amortización, desembolsos, pagos y abonos
-│   ├── actividades/     Actividades económicas, subactividades, ingresos, gastos y resultados
-│   └── reportes/        Reportes 1-9 con exportación PDF y Excel
+│   ├── actividades/     Actividades económicas, subactividades, ingresos, gastos, resultados y participación
+│   ├── caja/            Caja y bancos: saldos, libro de caja, ingresos/egresos varios y transferencias
+│   ├── distribucion/    Distribución de ganancias: cálculo, aprobación, pago o capitalización
+│   └── reportes/        Reportes 1-14 con exportación PDF y Excel
 ├── templates/           Interfaz (HTML) y plantillas PDF
 ├── static/css/          Estilos (paleta del sello: azul marino, azul Unión, naranja Esfuerzo, dorado)
 ├── static/img/          Logo oficial y derivados (favicon, PDF)

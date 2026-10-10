@@ -9,6 +9,12 @@
   <div class="kpi"><div class="etq">Afiliados activos</div><div class="valor">{{ afiliados_activos }}</div><div class="det">{{ afiliados_inactivos }} inactivo{{ afiliados_inactivos|pluralize }}</div></div>
   <div class="kpi"><div class="etq">Operaciones del mes</div><div class="valor">{{ movimientos_mes }}</div><div class="det">Desde el {{ inicio_mes|fecha }}</div></div>
 </div>
+{% if ver_caja %}
+<div class="kpis">
+  <div class="kpi"><div class="etq">Dinero en caja y bancos</div><div class="valor{% if dinero < 0 %} perdida{% endif %}">{{ dinero|lempiras }}</div><div class="det"><a href="{% url 'caja:indice' %}">Ver saldos por caja o cuenta</a></div></div>
+  {% if por_pagar %}<div class="kpi aportacion"><div class="etq">Ganancias por entregar</div><div class="valor">{{ por_pagar|lempiras }}</div><div class="det">Aprobadas, sin pagar ni capitalizar</div></div>{% endif %}
+</div>
+{% endif %}
 {% if ver_prestamos or actividades_anio %}
 <div class="kpis">
   {% if ver_prestamos %}

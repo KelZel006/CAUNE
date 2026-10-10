@@ -26,7 +26,8 @@ class TipoMovimiento(models.Model):
     participa_distribucion = models.BooleanField(
         "cuenta para la distribución de ganancias",
         default=False,
-        help_text="Pendiente de aprobación por CAUNE (decisión A3). Se usará en la Fase 3.",
+        help_text="Su saldo es la base para repartir las ganancias: quien más aporta, más recibe. "
+                  "Márquelo también en los retiros de esa clase para que los descuenten.",
     )
     descripcion = models.TextField("descripción", blank=True)
     activo = models.BooleanField(default=True)

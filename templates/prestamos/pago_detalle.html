@@ -21,8 +21,13 @@
     <div><dt>Forma de pago</dt><dd>{{ object.get_metodo_pago_display }}{% if object.referencia %} · Ref. {{ object.referencia }}{% endif %}</dd></div>
     <div><dt>Caja o cuenta</dt><dd>{{ object.cuenta_fondo.nombre }}</dd></div>
   </dl>
-  <div class="recibo-monto" style="margin-top:1.1rem">{{ object.monto|lempiras }}</div>
-  <div class="letras">La suma de: <strong>{{ object.monto|letras }}</strong></div>
+  <div class="recibo-monto" style="margin-top:1.1rem">{{ object.total_recibido|lempiras }}</div>
+  <div class="letras">La suma de: <strong>{{ object.total_recibido|letras }}</strong></div>
+  {% if object.mora or object.excedente %}<dl class="datos" style="margin-bottom:1rem">
+    <div><dt>Aplicado al préstamo</dt><dd>{{ object.monto|lempiras }}</dd></div>
+    {% if object.mora %}<div><dt>De eso, a mora</dt><dd>{{ object.mora|lempiras }}</dd></div>{% endif %}
+    {% if object.excedente %}<div><dt>Pagado de más · {% if object.prestamo.tipo_prestatario == 'INTERNO' %}a aportaciones{% else %}depósito de {{ object.movimiento_excedente.afiliado.codigo }} (aval){% endif %}</dt><dd>{{ object.excedente|lempiras }}{% if object.movimiento_excedente_id %} · <a href="{% url 'aportaciones:detalle' object.movimiento_excedente_id %}">{{ object.movimiento_excedente.numero_operacion }}</a>{% endif %}</dd></div>{% endif %}
+  </dl>{% endif %}
   <table class="tabla" style="margin-bottom:1rem">
     <thead><tr><th class="num">Cuota</th><th>Vencimiento</th><th class="num">Interés</th><th class="num">Capital</th></tr></thead>
     <tbody>{% for a in aplicaciones %}<tr><td class="num">{{ a.cuota.numero }}</td><td>{{ a.cuota.fecha_vencimiento|fecha }}</td><td class="num">{{ a.interes|lempiras }}</td><td class="num">{{ a.capital|lempiras }}</td></tr>{% endfor %}</tbody>

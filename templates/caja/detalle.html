@@ -1,0 +1,27 @@
+{% extends "base.html" %}{% load caune %}
+{% block titulo %}{{ object.numero }}{% endblock %}
+{% block encabezado %}{{ object.get_tipo_display }} {{ object.numero }}{% endblock %}
+{% block contenido %}
+<div class="acciones no-imprimir" style="margin-bottom:1rem">
+  <a class="btn" href="{% url 'caja:indice' %}">{% icono "volver" %}Caja y bancos</a>
+  <button class="btn" type="button" onclick="window.print()">{% icono "imprimir" %}Imprimir</button>
+  {% if object.confirmado and perms.caja.anular_movimientocaja %}<a class="btn peligro" href="{% url 'caja:anular' object.pk %}">Anular</a>{% endif %}
+</div>
+{% if object.estado == 'ANULADO' %}<div class="aviso-anulado"><strong>Anulado</strong> el {{ object.anulado_en|date:"d/m/Y H:i" }} por {{ object.anulado_por }}. Motivo: {{ object.motivo_anulacion }}</div>{% endif %}
+<div class="card" style="max-width:900px">
+  <div class="kpis" style="margin-bottom:1rem">
+    <div class="kpi destacado"><div class="etq">Monto</div><div class="valor">{{ object.monto|lempiras }}</div><div class="det">{{ object.monto|letras }}</div></div>
+  </div>
+  <dl class="datos">
+    <div><dt>Fecha</dt><dd>{{ object.fecha|fecha }}</dd></div>
+    <div><dt>Tipo</dt><dd>{{ object.get_tipo_display }}</dd></div>
+    {% if object.categoria %}<div><dt>Categoría</dt><dd>{{ object.categoria.nombre }}{% if object.categoria.afecta_utilidades %} <span class="badge info">Cuenta en la utilidad</span>{% else %} <span class="badge off">No es utilidad</span>{% endif %}</dd></div>{% endif %}
+    <div><dt>{% if object.es_transferencia %}Sale de{% elif object.tipo == 'INGRESO' %}Entra en{% else %}Sale de{% endif %}</dt><dd>{{ object.cuenta_fondo }}</dd></div>
+    {% if object.es_transferencia %}<div><dt>Entra en</dt><dd>{{ object.cuenta_destino }}</dd></div>{% endif %}
+    <div><dt>Método</dt><dd>{{ object.get_metodo_pago_display }}{% if object.referencia %} · {{ object.referencia }}{% endif %}</dd></div>
+    <div style="grid-column:1/-1"><dt>Concepto</dt><dd>{{ object.concepto }}</dd></div>
+    {% if object.observacion %}<div style="grid-column:1/-1"><dt>Observación</dt><dd>{{ object.observacion }}</dd></div>{% endif %}
+    <div><dt>Registrado por</dt><dd class="small">{{ object.registrado_por }} · {{ object.registrado_en|date:"d/m/Y H:i" }}</dd></div>
+  </dl>
+</div>
+{% endblock %}

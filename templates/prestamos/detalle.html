@@ -9,8 +9,11 @@
   <a class="btn" href="?formato=pdf" target="_blank">{% icono "descargar" %}Cuadro PDF</a>
   <a class="btn" href="?formato=xlsx">Cuadro Excel</a>
   <button class="btn" type="button" onclick="window.print()">{% icono "imprimir" %}Imprimir</button>
+  {% if object.tipo_prestatario == 'EXTERNO' and perms.prestamos.change_prestamo and object.estado != 'ANULADO' and object.estado != 'PAGADO' %}<a class="btn" href="{% url 'prestamos:responsable' object.pk %}">{% if object.afiliado_responsable %}Cambiar{% else %}Asignar{% endif %} responsable</a>{% endif %}
   {% if object.estado == 'APROBADO' and perms.prestamos.anular_prestamo %}<a class="btn peligro" href="{% url 'prestamos:anular' object.pk %}">Anular</a>{% endif %}
 </div>
+{% if object.tipo_prestatario == 'EXTERNO' and not object.afiliado_responsable %}<div class="aviso-anulado"><strong>Sin afiliado responsable.</strong> Este préstamo externo no indica qué afiliado responde si el prestatario no paga.</div>{% endif %}
+{% if r.mora_pendiente %}<div class="aviso-anulado"><strong>En mora:</strong> {{ r.cuotas_vencidas }} cuota{{ r.cuotas_vencidas|pluralize }} vencida{{ r.cuotas_vencidas|pluralize }}. Mora pendiente al {{ r.fecha_corte|fecha }}: <strong>{{ r.mora_pendiente|lempiras }}</strong>. Sigue aumentando cada día mientras el capital vencido no se pague.</div>{% endif %}
 {% if object.estado == 'ANULADO' %}<div class="aviso-anulado"><strong>Préstamo anulado</strong> el {{ object.anulado_en|date:"d/m/Y H:i" }} por {{ object.anulado_por }}. Motivo: {{ object.motivo_anulacion }}</div>{% endif %}
 
 <div class="card">
@@ -25,9 +28,12 @@
     <div class="kpi destacado"><div class="etq">Saldo de capital</div><div class="valor">{{ r.saldo_capital|lempiras }}</div><div class="det">de {{ object.monto_aprobado|lempiras }} aprobados</div></div>
     <div class="kpi aportacion"><div class="etq">Intereses cobrados</div><div class="valor">{{ r.intereses_cobrados|lempiras }}</div><div class="det">Pendientes: {{ r.intereses_pendientes|lempiras }}</div></div>
     <div class="kpi deposito"><div class="etq">Total pendiente</div><div class="valor">{{ r.total_pendiente|lempiras }}</div><div class="det">{{ r.cuotas_pagadas }} de {{ object.plazo }} cuotas pagadas</div></div>
+    <div class="kpi"><div class="etq">Mora pendiente</div><div class="valor{% if r.mora_pendiente %} perdida{% endif %}">{{ r.mora_pendiente|lempiras }}</div><div class="det">Cobrada: {{ r.mora_cobrada|lempiras }}</div></div>
     <div class="kpi"><div class="etq">Próxima cuota</div>{% if r.proxima %}<div class="valor">{{ r.proxima.pendiente|lempiras }}</div><div class="det">N.º {{ r.proxima.cuota.numero }} · vence {{ r.proxima.cuota.fecha_vencimiento|fecha }}</div>{% else %}<div class="valor">—</div><div class="det">Sin cuotas pendientes</div>{% endif %}</div>
   </div>
   <dl class="datos">
+    {% if object.tipo_prestatario == 'EXTERNO' %}<div><dt>Afiliado responsable</dt><dd>{% if object.afiliado_responsable %}<a href="{% url 'afiliados:detalle' object.afiliado_responsable_id %}">{{ object.afiliado_responsable.codigo }} · {{ object.afiliado_responsable.nombre_completo }}</a><div class="small muted">Responde si el prestatario no paga</div>{% else %}<span class="badge mal">Sin asignar</span>{% endif %}</dd></div>{% endif %}
+    <div><dt>Mora</dt><dd>{{ object.tasa_mora|floatformat:2 }} % mensual sobre capital vencido{% if object.dias_gracia_mora %} · {{ object.dias_gracia_mora }} días de gracia{% endif %}{% if object.dias_maximos_mora %} · se congela a los {{ object.dias_maximos_mora }} días{% endif %}</dd></div>
     <div><dt>Tasa</dt><dd>{{ object.tasa|floatformat:2 }} % {{ object.get_periodicidad_tasa_display|lower }}{% if object.tasa_es_excepcion %} <span class="badge aviso">Excepción</span>{% endif %}</dd></div>
     <div><dt>Monto solicitado / aprobado</dt><dd>{{ object.monto_solicitado|lempiras }} / {{ object.monto_aprobado|lempiras }}</dd></div>
     <div><dt>Aprobación</dt><dd>{{ object.fecha_aprobacion|fecha }}</dd></div>
@@ -42,19 +48,21 @@
 <div class="card">
   <div class="card-head con-filete"><h2>Cuadro de amortización</h2><span class="small muted">Aprobado el {{ object.fecha_aprobacion|fecha }}; no cambia con abonos ni con cambios de tasa.</span></div>
   <div class="tabla-wrap"><table class="tabla">
-    <thead><tr><th class="num">N.º</th><th>Vencimiento</th><th class="num">Saldo inicial</th><th class="num">Capital</th><th class="num">Interés</th><th class="num">Cuota</th><th class="num">Saldo final</th><th class="num">Pagado</th><th class="num">Pendiente</th><th>Estado</th></tr></thead>
+    <thead><tr><th class="num">N.º</th><th>Vencimiento</th><th class="num">Saldo inicial</th><th class="num">Capital</th><th class="num">Interés</th><th class="num">Cuota</th><th class="num">Saldo final</th><th class="num">Pagado</th><th class="num">Pendiente</th><th class="num">Atraso</th><th class="num">Mora</th><th>Estado</th></tr></thead>
     <tbody>{% for c in r.cuotas %}<tr><td class="num">{{ c.cuota.numero }}</td><td>{{ c.cuota.fecha_vencimiento|fecha }}</td><td class="num">{{ c.cuota.saldo_inicial|lempiras }}</td><td class="num">{{ c.cuota.capital|lempiras }}</td><td class="num">{{ c.cuota.interes|lempiras }}</td><td class="num"><strong>{{ c.cuota.cuota|lempiras }}</strong></td><td class="num">{{ c.cuota.saldo_final|lempiras }}</td>
       <td class="num">{{ c.capital_pagado|add_dec:c.interes_pagado|lempiras }}</td><td class="num">{{ c.pendiente|lempiras }}</td>
-      <td>{% if c.estado == 'PAGADA' %}<span class="badge ok">Pagada</span>{% elif c.estado == 'PARCIAL' %}<span class="badge aviso">Parcial</span>{% else %}<span class="badge off">Pendiente</span>{% endif %}</td></tr>{% endfor %}</tbody>
+      <td class="num">{% if c.dias_atraso %}<span class="perdida">{{ c.dias_atraso }} día{{ c.dias_atraso|pluralize }}</span>{% else %}—{% endif %}</td>
+      <td class="num">{% if c.mora %}{{ c.mora|lempiras }}{% if object.dias_maximos_mora and c.dias_atraso > object.dias_maximos_mora %}<div class="small muted">congelada</div>{% endif %}{% else %}—{% endif %}</td>
+      <td>{% if c.estado == 'PAGADA' %}<span class="badge ok">Pagada</span>{% elif c.estado == 'VENCIDA' %}<span class="badge mal">Vencida</span>{% elif c.estado == 'PARCIAL' %}<span class="badge aviso">Parcial</span>{% else %}<span class="badge off">Pendiente</span>{% endif %}</td></tr>{% endfor %}</tbody>
   </table></div>
 </div>
 
 <div class="card">
   <div class="card-head con-filete"><h2>Pagos y abonos</h2></div>
   <div class="tabla-wrap"><table class="tabla">
-    <thead><tr><th>Recibo</th><th>Fecha</th><th>Tipo</th><th class="num">Monto</th><th>Registró</th><th>Estado</th></tr></thead>
-    <tbody>{% for pago in pagos %}<tr class="{% if pago.estado == 'ANULADO' %}anulado{% endif %}"><td class="sin-tachar"><a href="{% url 'prestamos:pago_detalle' pago.pk %}">{{ pago.numero_recibo }}</a></td><td>{{ pago.fecha|fecha }}</td><td>{{ pago.get_tipo_display }}</td><td class="num">{{ pago.monto|lempiras }}</td><td class="small">{{ pago.registrado_por }}</td><td class="sin-tachar">{% if pago.estado == 'ANULADO' %}<span class="badge mal">Anulado</span>{% else %}<span class="badge ok">Confirmado</span>{% endif %}</td></tr>
-    {% empty %}<tr><td colspan="6" class="vacio">Sin pagos registrados.</td></tr>{% endfor %}</tbody>
+    <thead><tr><th>Recibo</th><th>Fecha</th><th>Tipo</th><th class="num">Monto</th><th class="num">Mora</th><th class="num">A aportaciones</th><th>Registró</th><th>Estado</th></tr></thead>
+    <tbody>{% for pago in pagos %}<tr class="{% if pago.estado == 'ANULADO' %}anulado{% endif %}"><td class="sin-tachar"><a href="{% url 'prestamos:pago_detalle' pago.pk %}">{{ pago.numero_recibo }}</a></td><td>{{ pago.fecha|fecha }}</td><td>{{ pago.get_tipo_display }}</td><td class="num">{{ pago.monto|lempiras }}</td><td class="num">{% if pago.mora %}{{ pago.mora|lempiras }}{% else %}—{% endif %}</td><td class="num">{% if pago.excedente %}{{ pago.excedente|lempiras }}{% else %}—{% endif %}</td><td class="small">{{ pago.registrado_por }}</td><td class="sin-tachar">{% if pago.estado == 'ANULADO' %}<span class="badge mal">Anulado</span>{% else %}<span class="badge ok">Confirmado</span>{% endif %}</td></tr>
+    {% empty %}<tr><td colspan="8" class="vacio">Sin pagos registrados.</td></tr>{% endfor %}</tbody>
   </table></div>
 </div>
 {% endblock %}

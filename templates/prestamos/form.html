@@ -3,7 +3,7 @@
 {% block encabezado %}Nuevo préstamo{% endblock %}
 {% block contenido %}
 <div class="card" style="max-width:980px">
-  <p class="nota">Tasas configuradas: <strong>{{ tasa_interna|floatformat:2 }} % mensual</strong> para afiliados y <strong>{{ tasa_externa|floatformat:2 }} % mensual</strong> para externos. Las condiciones y el cuadro quedan fijos al aprobar; un cambio posterior de tasas no los modifica.</p>
+  <p class="nota">Tasas configuradas: <strong>{{ tasa_interna|floatformat:2 }} % mensual</strong> para afiliados y <strong>{{ tasa_externa|floatformat:2 }} % mensual</strong> para externos. Mora: <strong>{{ mora_interna|floatformat:2 }} %</strong> y <strong>{{ mora_externa|floatformat:2 }} %</strong> mensual sobre el capital vencido. Las condiciones y el cuadro quedan fijos al aprobar; un cambio posterior de tasas no los modifica.</p>
   <form method="post" novalidate id="form-prestamo">{% csrf_token %}
     {% include "partials/campos.html" %}
     <div class="form-pie">
@@ -26,7 +26,7 @@
     function actualizar() {
       var externo = (form.querySelector('[name="tipo_prestatario"]:checked') || {}).value === 'EXTERNO';
       campo('afiliado').hidden = externo;
-      ['externo_nombre', 'externo_identidad', 'externo_telefono', 'externo_direccion'].forEach(function (n) { campo(n).hidden = !externo; });
+      ['externo_nombre', 'externo_identidad', 'externo_telefono', 'externo_direccion', 'afiliado_responsable'].forEach(function (n) { campo(n).hidden = !externo; });
     }
     form.addEventListener('change', function (e) { if (e.target.name === 'tipo_prestatario') actualizar(); });
     actualizar();

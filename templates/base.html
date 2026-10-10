@@ -19,7 +19,7 @@
   </a>
   <nav class="nav">
     <a href="{% url 'core:dashboard' %}" class="{% if ns == 'core' and un == 'dashboard' %}activo{% endif %}">{% icono "inicio" %}Panel principal</a>
-    {% if perms.afiliados.view_afiliado or perms.aportaciones.view_movimientoafiliado or perms.prestamos.view_prestamo or perms.actividades.view_actividad %}<div class="grupo">Operación</div>{% endif %}
+    {% if perms.afiliados.view_afiliado or perms.aportaciones.view_movimientoafiliado or perms.prestamos.view_prestamo or perms.actividades.view_actividad or perms.caja.view_movimientocaja or perms.distribucion.view_distribucion %}<div class="grupo">Operación</div>{% endif %}
     {% if perms.afiliados.view_afiliado %}
       <a href="{% url 'afiliados:lista' %}" class="{% if ns == 'afiliados' %}activo{% endif %}">{% icono "afiliados" %}Afiliados</a>
     {% endif %}
@@ -31,6 +31,12 @@
     {% endif %}
     {% if perms.actividades.view_actividad %}
       <a href="{% url 'actividades:lista' %}" class="{% if ns == 'actividades' %}activo{% endif %}">{% icono "actividades" %}Actividades económicas</a>
+    {% endif %}
+    {% if perms.caja.view_movimientocaja %}
+      <a href="{% url 'caja:indice' %}" class="{% if ns == 'caja' %}activo{% endif %}">{% icono "caja" %}Caja y bancos</a>
+    {% endif %}
+    {% if perms.distribucion.view_distribucion %}
+      <a href="{% url 'distribucion:lista' %}" class="{% if ns == 'distribucion' %}activo{% endif %}">{% icono "ganancias" %}Distribución de ganancias</a>
     {% endif %}
     {% if perms.core.ver_reportes or perms.core.ver_auditoria %}<div class="grupo">Consulta</div>{% endif %}
     {% if perms.core.ver_reportes %}
@@ -44,7 +50,7 @@
       <a href="{% url 'core:configuracion' %}" class="{% if ns == 'core' and un != 'dashboard' and un != 'auditoria' or un == 'tipos' or un == 'tipo_crear' or un == 'tipo_editar' %}activo{% endif %}">{% icono "config" %}Configuración</a>
     {% endif %}
   </nav>
-  <div class="sidebar-pie">{{ coop.siglas|default:"CAUNE" }}{% if coop.fundacion %} · desde {{ coop.fundacion }}{% endif %}<br>Fase 2 · Préstamos y actividades</div>
+  <div class="sidebar-pie">{{ coop.siglas|default:"CAUNE" }}{% if coop.fundacion %} · desde {{ coop.fundacion }}{% endif %}<br>Fase 3 · Caja y ganancias</div>
 </aside>
 <label for="menu-toggle" class="backdrop" aria-hidden="true"></label>
 {% endwith %}

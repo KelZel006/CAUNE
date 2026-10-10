@@ -6,8 +6,10 @@
   <tr><td class="muted">Recibido de</td><td><b>{{ pago.prestamo.prestatario_nombre }}</b></td></tr>
   <tr><td class="muted">Préstamo</td><td>{{ pago.prestamo.numero }}</td></tr>
   <tr><td class="muted">Forma de pago</td><td>{{ pago.get_metodo_pago_display }}{% if pago.referencia %} · Ref. {{ pago.referencia }}{% endif %} · {{ pago.cuenta_fondo.nombre }}</td></tr>
-  <tr class="total"><td>Monto</td><td style="font-size:14pt">{{ pago.monto|lempiras }}</td></tr>
-  <tr><td class="muted">La suma de</td><td><b>{{ pago.monto|letras }}</b></td></tr>
+  <tr class="total"><td>Monto</td><td style="font-size:14pt">{{ pago.total_recibido|lempiras }}</td></tr>
+  <tr><td class="muted">La suma de</td><td><b>{{ pago.total_recibido|letras }}</b></td></tr>
+  {% if pago.mora %}<tr><td class="muted">Aplicado a mora</td><td>{{ pago.mora|lempiras }}</td></tr>{% endif %}
+  {% if pago.excedente %}<tr><td class="muted">Pagado de más ({% if pago.prestamo.tipo_prestatario == 'INTERNO' %}a aportaciones{% else %}depósito del aval {{ pago.movimiento_excedente.afiliado.codigo }}{% endif %})</td><td>{{ pago.excedente|lempiras }}</td></tr>{% endif %}
 </table>
 <table style="margin-top:10px">
   <thead><tr><th class="num">Cuota</th><th>Vencimiento</th><th class="num">Interés</th><th class="num">Capital</th></tr></thead>

@@ -1,0 +1,1 @@
+{% if estado == 'CALCULADA' %}<span class="badge aviso">{{ etiqueta }}</span>{% elif estado == 'APROBADA' %}<span class="badge info">{{ etiqueta }}</span>{% elif estado == 'APLICADA' %}<span class="badge ok">{{ etiqueta }}</span>{% else %}<span class="badge mal">{{ etiqueta }}</span>{% endif %}

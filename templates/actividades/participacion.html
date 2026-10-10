@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block titulo %}{{ titulo }}{% endblock %}
+{% block encabezado %}{{ titulo }} · {{ actividad.nombre }}{% endblock %}
+{% block contenido %}
+<div class="card" style="max-width:760px">
+  {% if exclusion %}
+  <p>{{ exclusion.afiliado.codigo }} · {{ exclusion.afiliado.nombre_completo }} volverá a recibir su parte del resultado de <strong>{{ actividad.nombre }}</strong> en las próximas distribuciones.</p>
+  {% else %}
+  <p class="nota">El afiliado marcado no recibe parte de la ganancia (ni de la pérdida) de <strong>{{ actividad.nombre }}</strong>. Su parte de los intereses de préstamos y de las demás actividades no cambia. El resultado de esta actividad se reparte entre los demás, según sus aportaciones.</p>
+  {% endif %}
+  <form method="post" novalidate>{% csrf_token %}
+    {% include "partials/campos.html" %}
+    <div class="form-pie"><a class="btn" href="{% url 'actividades:detalle' actividad.pk %}">Cancelar</a><button class="btn primario" type="submit">Confirmar</button></div>
+  </form>
+</div>
+{% endblock %}

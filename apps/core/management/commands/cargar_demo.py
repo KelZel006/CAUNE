@@ -50,8 +50,9 @@ class Command(BaseCommand):
         rnd = random.Random(2026)
         from apps.afiliados.models import Afiliado
         if Afiliado.objects.filter(apellidos__startswith="Demo").exists():
-            self.stdout.write("Ya existen afiliados de demostración; solo se agregan datos de la Fase 2.")
+            self.stdout.write("Ya existen afiliados de demostración; solo se agregan datos de las fases 2 y 3.")
             self._fase2(usuario, caja, hoy)
+            self._fase3(usuario, caja, hoy)
             return
         for i in range(opciones["afiliados"]):
             ingreso = hoy - timedelta(days=rnd.randint(120, 400))
@@ -71,6 +72,7 @@ class Command(BaseCommand):
                                          cuenta_fondo=caja, usuario=usuario, observacion="DEMO")
                 fecha += timedelta(days=30)
         self._fase2(usuario, caja, hoy)
+        self._fase3(usuario, caja, hoy)
         self.stdout.write(self.style.WARNING(
             f"Datos FICTICIOS cargados (identidades 9999…, apellidos «Demo»). "
             f"Usuarios: {', '.join(USUARIOS_DEMO)} (clave en cargar_demo.py)"))
@@ -103,6 +105,7 @@ class Command(BaseCommand):
                           metodo_pago="EFECTIVO", cuenta_fondo=caja, observacion="DEMO: pago parcial")
         ps.aprobar_prestamo(usuario=usuario, tipo_prestatario="EXTERNO",
                             externo={"nombre_completo": "Prestatario Externo Demo", "identidad": "8888199000001"},
+                            afiliado_responsable=afiliados[2],
                             monto_solicitado="5000", monto_aprobado="4000", plazo=6,
                             metodo_amortizacion="CUOTA_FIJA", fecha_aprobacion=hoy,
                             fecha_primer_vencimiento=hoy + timedelta(days=30), observaciones="DEMO (por desembolsar)")
@@ -123,3 +126,31 @@ class Command(BaseCommand):
                                  monto=Decimal("1500"), metodo_pago="EFECTIVO", cuenta_fondo=caja, usuario=usuario)
         acs.registrar_movimiento(actividad=rifa, tipo="GASTO", fecha=hoy - timedelta(days=5), concepto="Premio",
                                  monto=Decimal("1800"), metodo_pago="EFECTIVO", cuenta_fondo=caja, usuario=usuario)
+
+    def _fase3(self, usuario, caja, hoy):
+        """Banco, movimientos de caja y un afiliado que no participa en una actividad (solo si no hay movimientos)."""
+        from apps.actividades import services as acs
+        from apps.actividades.models import Actividad
+        from apps.afiliados.models import Afiliado
+        from apps.caja import services as cs
+        from apps.caja.models import CategoriaCaja, MovimientoCaja
+
+        if MovimientoCaja.objects.exists():
+            return
+        banco, _ = CuentaFondo.objects.get_or_create(
+            tipo=CuentaFondo.Tipo.BANCO, nombre="Cuenta de ahorro (demo)",
+            defaults={"banco": "Banco Demo", "numero_cuenta": "000-DEMO-01", "titular": "CAUNE"})
+        cat = {c.nombre: c for c in CategoriaCaja.objects.all()}
+        for tipo, categoria, cuenta, metodo, ref, dias, concepto, monto in (
+                ("TRANSFERENCIA", None, caja, "DEPOSITO_BANCARIO", "BOL-DEMO-1", 50, "Depósito del efectivo", "6000"),
+                ("INGRESO", "Intereses bancarios", banco, "TRANSFERENCIA", "INT-DEMO", 20, "Intereses del mes", "85.40"),
+                ("EGRESO", "Comisiones bancarias", banco, "TRANSFERENCIA", "COM-DEMO", 20, "Comisión de manejo", "25"),
+                ("EGRESO", "Gastos administrativos", caja, "EFECTIVO", "", 10, "Papelería y copias", "350")):
+            cs.registrar_movimiento(tipo=tipo, fecha=hoy - timedelta(days=dias), concepto=concepto,
+                                    monto=Decimal(monto), metodo_pago=metodo, cuenta_fondo=cuenta,
+                                    categoria=cat.get(categoria), cuenta_destino=banco if tipo == "TRANSFERENCIA" else None,
+                                    referencia=ref, observacion="DEMO", usuario=usuario)
+        act = Actividad.objects.filter(nombre="Venta de comida (demo)").first()
+        afiliado = Afiliado.objects.filter(apellidos__startswith="Demo").order_by("codigo").last()
+        if act and afiliado and not act.exclusiones.exists():
+            acs.excluir_afiliado(act, afiliado, usuario=usuario, motivo="DEMO: no colaboró en la venta de comida")

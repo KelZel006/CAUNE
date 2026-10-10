@@ -1,0 +1,12 @@
+{% extends "base.html" %}{% load caune %}
+{% block titulo %}Anular {{ dist.codigo }}{% endblock %}
+{% block encabezado %}Anular distribución {{ dist.codigo }}{% endblock %}
+{% block contenido %}
+<div class="card" style="max-width:760px">
+  <div class="aviso-anulado">Distribución del {{ dist.fecha_inicio|fecha }} al {{ dist.fecha_fin|fecha }}. Al anularla, el período queda libre para calcular una nueva. Solo se anula si no tiene pagos ni capitalizaciones confirmadas.</div>
+  <form method="post" novalidate>{% csrf_token %}
+    {% include "partials/campos.html" %}
+    <div class="form-pie"><a class="btn" href="{% url 'distribucion:detalle' dist.pk %}">Cancelar</a><button class="btn peligro" type="submit">Anular</button></div>
+  </form>
+</div>
+{% endblock %}

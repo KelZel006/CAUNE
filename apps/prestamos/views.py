@@ -8,7 +8,7 @@ from apps.core.exportar import respuesta_pdf, respuesta_xlsx
 from apps.core.mixins import ListaMixin, PermisoMixin
 
 from . import services
-from .forms import DesembolsoForm, FiltroPrestamosForm, MotivoForm, PagoForm, PrestamoForm
+from .forms import DesembolsoForm, FiltroPrestamosForm, MotivoForm, PagoForm, PrestamoForm, ResponsableForm
 from .models import PagoPrestamo, Prestamo
 
 
@@ -58,7 +58,9 @@ class PrestamoCreateView(PermisoMixin, FormView):
 
     def get_context_data(self, **kwargs):
         return super().get_context_data(tasa_interna=services.tasa_configurada(Prestamo.Tipo.INTERNO),
-                                        tasa_externa=services.tasa_configurada(Prestamo.Tipo.EXTERNO), **kwargs)
+                                        tasa_externa=services.tasa_configurada(Prestamo.Tipo.EXTERNO),
+                                        mora_interna=services.tasa_mora_configurada(Prestamo.Tipo.INTERNO),
+                                        mora_externa=services.tasa_mora_configurada(Prestamo.Tipo.EXTERNO), **kwargs)
 
     def form_valid(self, form):
         d = form.cleaned_data
@@ -77,6 +79,7 @@ class PrestamoCreateView(PermisoMixin, FormView):
                 usuario=self.request.user, tipo_prestatario=d["tipo_prestatario"], afiliado=d["afiliado"],
                 externo={"nombre_completo": d["externo_nombre"], "identidad": d["externo_identidad"],
                          "telefono": d["externo_telefono"], "direccion": d["externo_direccion"]},
+                afiliado_responsable=d["afiliado_responsable"],
                 monto_solicitado=d["monto_solicitado"], monto_aprobado=d["monto_aprobado"], plazo=d["plazo"],
                 metodo_amortizacion=d["metodo_amortizacion"], tasa=d["tasa"], motivo_excepcion=d["motivo_excepcion"],
                 fecha_aprobacion=d["fecha_aprobacion"], fecha_primer_vencimiento=d["fecha_primer_vencimiento"],
@@ -94,7 +97,7 @@ class PrestamoDetailView(PermisoMixin, DetailView):
     permission_required = "prestamos.view_prestamo"
     template_name = "prestamos/detalle.html"
     queryset = Prestamo.objects.select_related("afiliado", "prestatario_externo", "registrado_por",
-                                               "excepcion_autorizada_por", "cuenta_desembolso")
+                                               "excepcion_autorizada_por", "cuenta_desembolso", "afiliado_responsable")
 
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
@@ -106,13 +109,14 @@ class PrestamoDetailView(PermisoMixin, DetailView):
         if formato == "xlsx":
             filas = [[c.cuota.numero, c.cuota.fecha_vencimiento.strftime("%d/%m/%Y"), c.cuota.saldo_inicial,
                       c.cuota.capital, c.cuota.interes, c.cuota.cuota, c.cuota.saldo_final, c.capital_pagado,
-                      c.interes_pagado, c.pendiente, c.estado.title()] for c in self.resumen.cuotas]
+                      c.interes_pagado, c.pendiente, c.dias_atraso, c.mora, c.estado.title()]
+                     for c in self.resumen.cuotas]
             p = self.object
             return respuesta_xlsx(
                 f"Cuadro {p.numero}",
                 ["N.º", "Vencimiento", "Saldo inicial", "Capital", "Interés", "Cuota", "Saldo final",
-                 "Capital pagado", "Interés pagado", "Pendiente", "Estado"],
-                filas, f"cuadro-{p.numero}", columnas_monto=(2, 3, 4, 5, 6, 7, 8, 9),
+                 "Capital pagado", "Interés pagado", "Pendiente", "Días de atraso", "Mora generada", "Estado"],
+                filas, f"cuadro-{p.numero}", columnas_monto=(2, 3, 4, 5, 6, 7, 8, 9, 11),
                 subtitulo=f"{p.prestatario_nombre} · L {p.monto_aprobado:,.2f} al {p.tasa:g} % mensual · "
                           f"{p.plazo} cuotas · {p.get_metodo_amortizacion_display()}")
         return self.render_to_response(self.get_context_data(object=self.object))
@@ -171,7 +175,7 @@ class PagoCreateView(_AccionPrestamoMixin, FormView):
         inicial = super().get_initial()
         r = services.resumen(self.prestamo)
         if r.proxima:
-            inicial["monto"] = r.proxima.pendiente
+            inicial["monto"] = r.proxima.pendiente + r.mora_pendiente
         return inicial
 
     def get_context_data(self, **kwargs):
@@ -235,3 +239,22 @@ class AnularPagoView(PermisoMixin, FormView):
             return self.form_invalid(form)
         messages.success(self.request, f"Pago {self.pago.numero_recibo} anulado.")
         return redirect("prestamos:pago_detalle", pk=self.pago.pk)
+
+
+class ResponsableView(_AccionPrestamoMixin, FormView):
+    permission_required = "prestamos.change_prestamo"
+    form_class = ResponsableForm
+    template_name = "prestamos/responsable.html"
+
+    def get_initial(self):
+        return {"afiliado": self.prestamo.afiliado_responsable_id}
+
+    def form_valid(self, form):
+        try:
+            services.cambiar_responsable(self.prestamo, afiliado=form.cleaned_data["afiliado"],
+                                         usuario=self.request.user, motivo=form.cleaned_data["motivo"])
+        except ValidationError as error:
+            _agregar_errores(form, error)
+            return self.form_invalid(form)
+        messages.success(self.request, "Afiliado responsable actualizado.")
+        return redirect("prestamos:detalle", pk=self.prestamo.pk)

@@ -32,6 +32,8 @@ class Parametro(models.Model):
         GENERAL = "GENERAL", "Datos generales de CAUNE"
         OPERACION = "OPERACION", "Reglas de operación"
         PRESTAMOS = "PRESTAMOS", "Préstamos"
+        CAJA = "CAJA", "Caja y bancos"
+        GANANCIAS = "GANANCIAS", "Distribución de ganancias"
 
     clave = models.CharField(max_length=80, unique=True)
     nombre = models.CharField(max_length=150)
@@ -126,6 +128,13 @@ class Secuencia(models.Model):
 
     def formatear(self, numero):
         return f"{self.prefijo}-{numero:0{self.relleno}d}"
+
+    def ejemplo(self):
+        """Cómo se verá el próximo número (los préstamos usan 1 o 2 + año + correlativo)."""
+        if self.prefijo.startswith("PR") and self.prefijo[2:].isdigit():
+            n = f"{self.siguiente:0{self.relleno}d}"
+            return f"1{self.prefijo[2:]}{n} (interno) · 2{self.prefijo[2:]}{n} (externo)"
+        return self.formatear(self.siguiente)
 
 
 class CuentaFondo(models.Model):

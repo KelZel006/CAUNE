@@ -8,7 +8,7 @@ from django.db import models
 from django.db.models import F, Q
 
 from apps.afiliados.models import Afiliado
-from apps.aportaciones.models import MetodoPago
+from apps.aportaciones.models import MetodoPago, MovimientoAfiliado
 from apps.core.models import CuentaFondo
 
 from . import amortizacion
@@ -70,6 +70,10 @@ class Prestamo(models.Model):
     afiliado = models.ForeignKey(Afiliado, null=True, blank=True, on_delete=models.PROTECT, related_name="prestamos")
     prestatario_externo = models.ForeignKey(PrestatarioExterno, null=True, blank=True, on_delete=models.PROTECT,
                                             related_name="prestamos")
+    # Préstamos externos: afiliado que responde por la deuda si el tercero no paga.
+    afiliado_responsable = models.ForeignKey(Afiliado, null=True, blank=True, on_delete=models.PROTECT,
+                                             related_name="prestamos_respaldados",
+                                             verbose_name="afiliado responsable")
     monto_solicitado = models.DecimalField(**DINERO)
     monto_aprobado = models.DecimalField(**DINERO)
     # Condiciones congeladas al aprobar: un cambio posterior en la configuración no las afecta.
@@ -81,6 +85,12 @@ class Prestamo(models.Model):
     motivo_excepcion = models.TextField(blank=True)
     excepcion_autorizada_por = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
                                                  on_delete=models.PROTECT, related_name="+")
+    # Mora congelada al aprobar: % mensual sobre el capital vencido y no pagado, por cada día de atraso.
+    tasa_mora = models.DecimalField("tasa de mora (% mensual)", max_digits=7, decimal_places=4, default=0)
+    dias_gracia_mora = models.PositiveSmallIntegerField("días de gracia antes de cobrar mora", default=0)
+    dias_maximos_mora = models.PositiveSmallIntegerField(
+        "días de atraso tras los cuales la mora se congela", default=90,
+        help_text="Pasados estos días desde el vencimiento, la mora de la cuota deja de aumentar. 0 = sin límite.")
     metodo_amortizacion = models.CharField("método de amortización", max_length=12, choices=Metodo.choices)
     plazo = models.PositiveSmallIntegerField("plazo (cuotas)")
     frecuencia_pago = models.CharField(max_length=8, choices=Frecuencia.choices, default=Frecuencia.MENSUAL)
@@ -112,6 +122,9 @@ class Prestamo(models.Model):
             models.CheckConstraint(condition=Q(monto_solicitado__gt=0, monto_aprobado__gt=0), name="prestamo_montos_positivos"),
             models.CheckConstraint(condition=Q(monto_aprobado__lte=F("monto_solicitado")), name="prestamo_aprobado_no_excede"),
             models.CheckConstraint(condition=Q(tasa__gte=0, tasa_configurada__gte=0), name="prestamo_tasa_no_negativa"),
+            models.CheckConstraint(condition=Q(tasa_mora__gte=0), name="prestamo_tasa_mora_no_negativa"),
+            models.CheckConstraint(condition=Q(tipo_prestatario="EXTERNO") | Q(afiliado_responsable__isnull=True),
+                                   name="prestamo_responsable_solo_externo"),
             models.CheckConstraint(condition=Q(plazo__gte=1), name="prestamo_plazo_positivo"),
             models.CheckConstraint(
                 condition=(Q(tipo_prestatario="INTERNO", afiliado__isnull=False, prestatario_externo__isnull=True)
@@ -189,14 +202,19 @@ class PagoPrestamo(models.Model):
         CONFIRMADO = "CONFIRMADO", "Confirmado"
         ANULADO = "ANULADO", "Anulado"
 
-    CAMPOS_INMUTABLES = ("numero_recibo", "prestamo_id", "tipo", "fecha", "monto", "metodo_pago", "cuenta_fondo_id",
-                         "referencia", "observacion", "registrado_por_id", "clave_idempotencia")
+    CAMPOS_INMUTABLES = ("numero_recibo", "prestamo_id", "tipo", "fecha", "monto", "mora", "excedente", "metodo_pago",
+                         "cuenta_fondo_id", "referencia", "observacion", "registrado_por_id", "clave_idempotencia")
 
     numero_recibo = models.CharField("número de recibo", max_length=20, unique=True, editable=False)
     prestamo = models.ForeignKey(Prestamo, on_delete=models.PROTECT, related_name="pagos")
     tipo = models.CharField(max_length=5, choices=Tipo.choices, default=Tipo.PAGO)
     fecha = models.DateField()
+    # monto = lo aplicado al préstamo (mora + intereses + capital). El excedente se acredita como aportación.
     monto = models.DecimalField(**DINERO)
+    mora = models.DecimalField("aplicado a mora", **DINERO, default=0)
+    excedente = models.DecimalField("pagado de más (a aportaciones)", **DINERO, default=0)
+    movimiento_excedente = models.OneToOneField(MovimientoAfiliado, null=True, blank=True, on_delete=models.PROTECT,
+                                                related_name="pago_prestamo_origen")
     metodo_pago = models.CharField("método de pago", max_length=20, choices=MetodoPago.choices)
     cuenta_fondo = models.ForeignKey(CuentaFondo, on_delete=models.PROTECT, related_name="pagos_prestamo",
                                      verbose_name="caja o cuenta")
@@ -220,6 +238,11 @@ class PagoPrestamo(models.Model):
         indexes = [models.Index(fields=["prestamo", "estado"]), models.Index(fields=["fecha"])]
         constraints = [
             models.CheckConstraint(condition=Q(monto__gt=0), name="pago_prestamo_monto_positivo"),
+            models.CheckConstraint(condition=Q(mora__gte=0, excedente__gte=0, mora__lte=F("monto")),
+                                   name="pago_prestamo_mora_excedente_validos"),
+            models.CheckConstraint(condition=Q(excedente=0, movimiento_excedente__isnull=True)
+                                   | Q(excedente__gt=0, movimiento_excedente__isnull=False),
+                                   name="pago_prestamo_excedente_coherente"),
             models.CheckConstraint(
                 condition=(Q(estado="CONFIRMADO", anulado_por__isnull=True, anulado_en__isnull=True)
                            | (Q(estado="ANULADO", anulado_por__isnull=False, anulado_en__isnull=False)
@@ -235,6 +258,10 @@ class PagoPrestamo(models.Model):
     @property
     def confirmado(self):
         return self.estado == self.Estado.CONFIRMADO
+
+    @property
+    def total_recibido(self):
+        return self.monto + self.excedente
 
     def save(self, *args, **kwargs):
         if not self._state.adding:

@@ -1,0 +1,12 @@
+{% extends "base.html" %}{% load caune %}
+{% block titulo %}Anular {{ pago.numero }}{% endblock %}
+{% block encabezado %}Anular {{ pago.get_forma_display|lower }} {{ pago.numero }}{% endblock %}
+{% block contenido %}
+<div class="card" style="max-width:760px">
+  <div class="aviso-anulado">{{ pago.get_forma_display }} de {{ pago.monto|lempiras }} a {{ pago.afiliado.codigo }} · {{ pago.afiliado.nombre_completo }} ({{ pago.distribucion.codigo }}).{% if pago.movimiento_afiliado_id %} También se anulará el depósito acreditado en su cuenta.{% else %} El dinero vuelve a contar en la caja.{% endif %} La ganancia queda pendiente de entregar.</div>
+  <form method="post" novalidate>{% csrf_token %}
+    {% include "partials/campos.html" %}
+    <div class="form-pie"><a class="btn" href="{% url 'distribucion:detalle' pago.distribucion_id %}">Cancelar</a><button class="btn peligro" type="submit">Anular</button></div>
+  </form>
+</div>
+{% endblock %}

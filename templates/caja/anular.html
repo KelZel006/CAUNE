@@ -1,0 +1,12 @@
+{% extends "base.html" %}{% load caune %}
+{% block titulo %}Anular {{ m.numero }}{% endblock %}
+{% block encabezado %}Anular {{ m.get_tipo_display|lower }} {{ m.numero }}{% endblock %}
+{% block contenido %}
+<div class="card" style="max-width:760px">
+  <div class="aviso-anulado">{{ m.get_tipo_display }} de {{ m.monto|lempiras }} del {{ m.fecha|fecha }} («{{ m.concepto }}»). Dejará de sumar en los saldos de caja; el registro se conserva.</div>
+  <form method="post" novalidate>{% csrf_token %}
+    {% include "partials/campos.html" %}
+    <div class="form-pie"><a class="btn" href="{% url 'caja:detalle' m.pk %}">Cancelar</a><button class="btn peligro" type="submit">Anular</button></div>
+  </form>
+</div>
+{% endblock %}

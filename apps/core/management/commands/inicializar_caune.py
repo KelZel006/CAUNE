@@ -2,6 +2,7 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 
 from apps.aportaciones.services import asegurar_tipos_iniciales
+from apps.caja.services import asegurar_categorias
 from apps.core.models import CuentaFondo
 from apps.core.parametros import asegurar_parametros
 from apps.core.roles import configurar_roles
@@ -9,7 +10,7 @@ from apps.core.secuencias import asegurar_secuencias
 
 
 class Command(BaseCommand):
-    help = "Crea la configuración inicial de CAUNE (roles, parámetros, numeración, tipos y caja general). Idempotente."
+    help = "Crea la configuración inicial de CAUNE (roles, parámetros, numeración, tipos, categorías de caja y caja general). Idempotente."
 
     def add_arguments(self, parser):
         parser.add_argument("--restablecer-roles", action="store_true",
@@ -21,6 +22,7 @@ class Command(BaseCommand):
         asegurar_parametros()
         asegurar_secuencias()
         asegurar_tipos_iniciales()
+        asegurar_categorias()
         if not CuentaFondo.objects.exists():
             CuentaFondo.objects.create(tipo=CuentaFondo.Tipo.CAJA, nombre="Caja general")
             self.stdout.write("Creada «Caja general».")

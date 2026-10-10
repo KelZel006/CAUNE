@@ -24,6 +24,10 @@ class PrestamoForm(forms.Form):
     externo_identidad = forms.CharField(label="Identidad del prestatario externo", required=False, max_length=17)
     externo_telefono = forms.CharField(label="Teléfono del prestatario externo", required=False, max_length=20)
     externo_direccion = forms.CharField(label="Dirección del prestatario externo", required=False, max_length=300)
+    afiliado_responsable = AfiliadoChoiceField(
+        label="Afiliado responsable", required=False,
+        queryset=Afiliado.objects.filter(estado="ACTIVO").order_by("codigo"),
+        help_text="Afiliado que responde por la deuda si el prestatario externo no paga.")
     monto_solicitado = forms.DecimalField(label="Monto solicitado", **DINERO)
     monto_aprobado = forms.DecimalField(label="Monto aprobado", **DINERO)
     metodo_amortizacion = forms.ChoiceField(label="Método de amortización", choices=Prestamo.Metodo.choices)
@@ -72,6 +76,12 @@ class PagoForm(forms.Form):
         if not self.is_bound:
             self.initial.setdefault("clave_idempotencia", uuid.uuid4())
             self.initial.setdefault("fecha", timezone.localdate())
+
+
+class ResponsableForm(forms.Form):
+    afiliado = AfiliadoChoiceField(label="Afiliado responsable",
+                                   queryset=Afiliado.objects.filter(estado="ACTIVO").order_by("codigo"))
+    motivo = forms.CharField(label="Motivo", min_length=10, widget=forms.Textarea(attrs={"rows": 3}))
 
 
 class MotivoForm(forms.Form):

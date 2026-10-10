@@ -9,7 +9,7 @@ web
 ## Users
 - **Tesorero** (usuario principal): acceso total al sistema. Registra afiliados, aportaciones, depósitos y retiros, emite recibos y estados de cuenta, y administra la configuración.
 - **Presidente**: consulta los reportes de importancia (panel financiero, listado de afiliados, estados de cuenta, aportaciones y depósitos). No registra operaciones.
-- Otros roles configurables (supervisor, encargados de préstamos y actividades) para fases futuras.
+- Otros roles configurables: contador o supervisor, encargado de préstamos y encargado de actividades.
 - Los afiliados no usan el sistema directamente en esta versión.
 
 ## Product Purpose
@@ -21,7 +21,7 @@ Reemplaza hojas de Airtable sin integridad contable: los saldos se calculan siem
 ## Operating Context
 - Moneda: Lempiras (L 1,250.00). Fechas en DD/MM/AAAA. Zona horaria America/Tegucigalpa. Idioma español.
 - Recibos impresos o en PDF, con el monto en letras y espacio para firmas. Reportes en PDF y Excel.
-- Se desarrolla por fases. Fase 1: afiliados, aportaciones y depósitos, usuarios, configuración, reportes 1-3. Fase 2: préstamos internos (1 % mensual) y externos (5 % mensual) con cuadro de amortización, pagos y abonos; actividades económicas con resultados; reportes 4-9.
+- Se desarrolla por fases. Fase 1: afiliados, aportaciones y depósitos, usuarios, configuración, reportes 1-3. Fase 2: préstamos internos (1 % mensual) y externos (5 % mensual) con cuadro de amortización, pagos y abonos; actividades económicas con resultados; reportes 4-9. Fase 3: caja y bancos sin cierre de caja (saldos calculados, ingresos y egresos varios, transferencias) y distribución de ganancias solo entre afiliados, proporcional a sus aportaciones, con afiliados excluibles por actividad; reportes 10-14.
 
 ## Capabilities and Constraints
 - Django 5.2 + PostgreSQL 16, con plantillas renderizadas en el servidor.

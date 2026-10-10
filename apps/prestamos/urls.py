@@ -13,4 +13,5 @@ urlpatterns = [
     path("<int:pk>/pagar/", views.PagoCreateView.as_view(), name="pagar"),
     path("pagos/<int:pk>/", views.PagoDetailView.as_view(), name="pago_detalle"),
     path("pagos/<int:pk>/anular/", views.AnularPagoView.as_view(), name="anular_pago"),
+    path("<int:pk>/responsable/", views.ResponsableView.as_view(), name="responsable"),
 ]

@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block titulo %}Responsable de {{ p.numero }}{% endblock %}
+{% block encabezado %}Afiliado responsable · {{ p.numero }}{% endblock %}
+{% block contenido %}
+<div class="card" style="max-width:760px">
+  <p class="nota">Préstamo externo a <strong>{{ p.prestatario_nombre }}</strong>. El afiliado responsable responde por la deuda si el prestatario no paga.{% if p.afiliado_responsable %} Actual: {{ p.afiliado_responsable.codigo }} · {{ p.afiliado_responsable.nombre_completo }}.{% endif %}</p>
+  <form method="post" novalidate>{% csrf_token %}
+    {% include "partials/campos.html" %}
+    <div class="form-pie"><a class="btn" href="{% url 'prestamos:detalle' p.pk %}">Cancelar</a><button class="btn primario" type="submit">Guardar</button></div>
+  </form>
+</div>
+{% endblock %}

@@ -11,6 +11,7 @@ from django.utils import timezone
 from apps.afiliados.services import crear_afiliado
 from apps.aportaciones.models import MetodoPago, TipoMovimiento
 from apps.aportaciones.services import asegurar_tipos_iniciales, registrar_movimiento
+from apps.caja.services import asegurar_categorias
 from apps.core.models import CuentaFondo
 from apps.core.parametros import asegurar_parametros
 from apps.core.roles import configurar_roles
@@ -26,6 +27,7 @@ def caune_inicializado(db):
     asegurar_parametros()
     asegurar_secuencias()
     asegurar_tipos_iniciales()
+    asegurar_categorias()
 
 
 def _usuario(username, rol=None):
@@ -33,6 +35,13 @@ def _usuario(username, rol=None):
     if rol:
         u.groups.add(Group.objects.get(name=rol))
     return User.objects.get(pk=u.pk)  # sin caché de permisos
+
+
+@pytest.fixture
+def sin_mora(db):
+    """Para pruebas de intereses y capital: los préstamos que se aprueben no cobran mora."""
+    from apps.core.models import Parametro
+    Parametro.objects.filter(clave__in=["prestamos.tasa_mora_interna", "prestamos.tasa_mora_externa"]).update(valor="0")
 
 
 @pytest.fixture

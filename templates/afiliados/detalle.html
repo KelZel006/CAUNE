@@ -59,7 +59,22 @@
       {% empty %}<li class="muted">Sin préstamos.</li>{% endfor %}</ul>
     </div>
     {% endif %}
-    <div class="card"><h2>Próxima fase</h2><p class="muted small" style="margin:0">Las ganancias distribuidas al afiliado se mostrarán aquí cuando se implemente la Fase 3.</p></div>
+    {% if respaldados %}
+    <div class="card"><h2>Préstamos externos que respalda</h2>
+      <p class="muted small" style="margin-top:0">Responde por estas deudas si el prestatario no paga.</p>
+      <ul class="lista-simple">{% for p in respaldados %}
+        <li><a href="{% url 'prestamos:detalle' p.pk %}"><strong>{{ p.numero }}</strong></a> · {{ p.prestatario_nombre }} · {{ p.get_estado_display }}</li>
+      {% endfor %}</ul>
+    </div>
+    {% endif %}
+    {% if perms.distribucion.view_distribucion %}
+    <div class="card"><h2>Ganancias recibidas</h2>
+      <ul class="lista-simple">{% for g in ganancias %}
+        <li><a href="{% url 'distribucion:detalle' g.distribucion.pk %}"><strong>{{ g.distribucion.codigo }}</strong></a> · {{ g.total|lempiras }}
+          <div class="small muted">{{ g.distribucion.fecha_inicio|fecha }} al {{ g.distribucion.fecha_fin|fecha }} · {% if g.pago %}{% if g.pago.forma == 'PAGO' %}Pagada{% else %}Capitalizada{% endif %} el {{ g.pago.fecha|fecha }}{% elif g.total > 0 %}Pendiente de entregar{% else %}Sin ganancia{% endif %}</div></li>
+      {% empty %}<li class="muted">Aún no tiene ganancias de distribuciones aprobadas.</li>{% endfor %}</ul>
+    </div>
+    {% endif %}
   </div>
 </div>
 {% endblock %}

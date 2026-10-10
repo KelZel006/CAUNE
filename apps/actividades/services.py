@@ -15,7 +15,7 @@ from apps.core.dinero import CERO, redondear
 from apps.core.secuencias import siguiente_numero
 from apps.prestamos.services import _validar_cuenta_metodo
 
-from .models import Actividad, MovimientoActividad, Subactividad
+from .models import Actividad, ExclusionActividad, MovimientoActividad, Subactividad
 
 _DEC = DecimalField(max_digits=16, decimal_places=2)
 _CONF = Q(movimientos__estado=MovimientoActividad.Estado.CONFIRMADO)
@@ -214,3 +214,45 @@ def anular_movimiento(mov, *, usuario, motivo):
                         descripcion=f"Anulación de {mov.numero}. Motivo: {motivo}", antes=antes,
                         despues=auditoria.instantanea(mov))
     return mov
+
+
+# --------------------------------------------------------------------------- participación en ganancias
+
+@transaction.atomic
+def excluir_afiliado(actividad, afiliado, *, usuario, motivo):
+    """Marca a un afiliado para que no participe en las ganancias de esta actividad."""
+    if not usuario.has_perm("actividades.gestionar_participacion"):
+        raise ValidationError("No tiene permiso para cambiar quién participa en las ganancias.")
+    motivo = " ".join((motivo or "").split())
+    if len(motivo) < 10:
+        raise ValidationError({"motivo": "Explique el motivo (mínimo 10 caracteres)."})
+    if ExclusionActividad.objects.filter(actividad=actividad, afiliado=afiliado).exists():
+        raise ValidationError({"afiliado": "Este afiliado ya está marcado como no participante."})
+    exclusion = ExclusionActividad.objects.create(actividad=actividad, afiliado=afiliado, motivo=motivo,
+                                                  registrado_por=usuario)
+    auditoria.registrar(auditoria.Accion.CREAR, usuario=usuario, objeto=exclusion,
+                        descripcion=f"{afiliado.codigo} no participa en las ganancias de {actividad.codigo}. "
+                                    f"Motivo: {motivo}",
+                        despues=auditoria.instantanea(exclusion))
+    return exclusion
+
+
+@transaction.atomic
+def incluir_afiliado(exclusion, *, usuario, motivo):
+    """Quita la marca: el afiliado vuelve a participar en las ganancias de la actividad."""
+    if not usuario.has_perm("actividades.gestionar_participacion"):
+        raise ValidationError("No tiene permiso para cambiar quién participa en las ganancias.")
+    motivo = " ".join((motivo or "").split())
+    if len(motivo) < 10:
+        raise ValidationError({"motivo": "Explique el motivo (mínimo 10 caracteres)."})
+    exclusion = ExclusionActividad.objects.select_related("actividad", "afiliado").get(pk=exclusion.pk)
+    antes = auditoria.instantanea(exclusion)
+    auditoria.registrar(auditoria.Accion.MODIFICAR, usuario=usuario, objeto=exclusion,
+                        descripcion=f"{exclusion.afiliado.codigo} vuelve a participar en las ganancias de "
+                                    f"{exclusion.actividad.codigo}. Motivo: {motivo}",
+                        antes=antes, despues=None)
+    exclusion.delete()
+
+
+def excluidos_ids(actividad):
+    return set(ExclusionActividad.objects.filter(actividad=actividad).values_list("afiliado_id", flat=True))

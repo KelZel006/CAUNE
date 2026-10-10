@@ -1,0 +1,27 @@
+{% extends "base.html" %}{% load caune %}
+{% block titulo %}Distribución de ganancias{% endblock %}
+{% block encabezado %}Distribución de ganancias{% endblock %}
+{% block contenido %}
+<div class="card">
+  <div class="card-head con-filete"><h2>Cómo se reparten</h2>{% if perms.distribucion.add_distribucion %}<a class="btn primario" href="{% url 'distribucion:crear' %}">{% icono "mas" %}Calcular distribución</a>{% endif %}</div>
+  <ul class="lista-simple">
+    <li><strong>Solo los afiliados</strong> (socios internos) reciben ganancias. Los prestatarios externos no participan.</li>
+    <li><strong>Quien más aporta, más recibe.</strong> Base vigente: {{ config.base|lower }}. Solo cuentan los tipos de movimiento marcados «cuenta para la distribución» (por defecto, las aportaciones; los depósitos no).</li>
+    <li><strong>Utilidad general</strong> = intereses y mora cobrados de préstamos + otros ingresos de caja − gastos de caja. Se reparte entre todos los participantes.</li>
+    <li><strong>Cada actividad</strong> se reparte solo entre quienes participan en ella. Quien está marcado como no participante recibe solo del resto de utilidades.</li>
+    <li>Reserva antes de repartir: {{ config.reserva }} %. {% if config.inactivos %}Se incluyen{% else %}No se incluyen{% endif %} afiliados inactivos al cierre.{% if config.doble_persona %} La aprueba una persona distinta a la que la calcula.{% endif %}</li>
+  </ul>
+</div>
+<div class="card">
+  <div class="tabla-wrap"><table class="tabla">
+    <thead><tr><th>Código</th><th>Período</th><th class="num">Resultado</th><th class="num">Reserva</th><th class="num">Repartido</th><th class="num">Entregado</th><th>Estado</th></tr></thead>
+    <tbody>{% for d in object_list %}<tr class="{% if d.estado == 'ANULADA' %}anulado{% endif %}"><td class="sin-tachar"><a href="{% url 'distribucion:detalle' d.pk %}"><strong>{{ d.codigo }}</strong></a></td>
+      <td>{{ d.fecha_inicio|fecha }} al {{ d.fecha_fin|fecha }}</td>
+      <td class="num{% if d.r.resultado < 0 %} perdida{% endif %}">{{ d.r.resultado|lempiras }}</td><td class="num">{{ d.r.reserva|lempiras }}</td>
+      <td class="num"><strong>{{ d.r.total|lempiras }}</strong></td><td class="num">{{ d.r.entregado|lempiras }}</td>
+      <td class="sin-tachar">{% include "distribucion/_estado.html" with estado=d.estado etiqueta=d.get_estado_display %}</td></tr>
+    {% empty %}<tr><td colspan="7" class="vacio">Aún no se ha calculado ninguna distribución.</td></tr>{% endfor %}</tbody>
+  </table></div>
+  {% include "partials/paginacion.html" %}
+</div>
+{% endblock %}

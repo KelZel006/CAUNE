@@ -38,6 +38,15 @@
         {% empty %}<tr><td colspan="4" class="vacio">Sin subactividades.</td></tr>{% endfor %}</tbody>
       </table></div>
     </div>
+    <div class="card">
+      <div class="card-head"><h2>Participación en las ganancias</h2>{% if perms.actividades.gestionar_participacion %}<a class="btn sm" href="{% url 'actividades:excluir' object.pk %}">{% icono "mas" %}Marcar no participante</a>{% endif %}</div>
+      <p class="muted small" style="margin-top:0">{% if exclusiones %}Estos afiliados <strong>no reciben</strong> parte del resultado de esta actividad. Siguen recibiendo su parte de los intereses y de las demás actividades.{% else %}Participan todos los afiliados, en proporción a sus aportaciones.{% endif %}</p>
+      {% if exclusiones %}<ul class="lista-simple">{% for e in exclusiones %}
+        <li><strong>{{ e.afiliado.codigo }}</strong> · {{ e.afiliado.nombre_completo }}
+          {% if perms.actividades.gestionar_participacion %}<a class="btn sm" style="float:right" href="{% url 'actividades:incluir' e.pk %}">Volver a incluir</a>{% endif %}
+          <div class="muted small">{{ e.motivo }}</div><div class="muted small">{{ e.registrado_por }} · {{ e.registrado_en|date:"d/m/Y H:i" }}</div></li>
+      {% endfor %}</ul>{% endif %}
+    </div>
     <div class="card"><h2>Datos</h2>
       <dl class="datos"><div><dt>Inicio</dt><dd>{{ object.fecha_inicio|fecha }}</dd></div><div><dt>Creada por</dt><dd>{{ object.creado_por }}</dd></div>
       {% if object.descripcion %}<div style="grid-column:1/-1"><dt>Descripción</dt><dd>{{ object.descripcion }}</dd></div>{% endif %}</dl>

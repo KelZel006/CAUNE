@@ -7,9 +7,20 @@ Decisiones de CAUNE aplicadas (08/10/2026):
 - P5: un abono extraordinario NO modifica el cuadro aprobado: se aplica al capital pendiente de las cuotas
   siguientes, en orden de vencimiento. Los intereses de esas cuotas siguen siendo exigibles en su fecha.
 
+Decisiones de CAUNE (10/10/2026):
+- Mora: sobre el capital de cada cuota vencida y no pagada, por día de atraso (tasa de mora mensual ÷ 30), desde el
+  vencimiento más los días de gracia y hasta 90 días después del vencimiento: ahí se congela. La tasa, la gracia y
+  el límite se congelan en el préstamo al aprobarlo. Un pago de cuota cubre primero la mora, luego el interés y
+  después el capital.
+- Lo que se paga de más: en un préstamo interno se acredita a las aportaciones del afiliado (tipo EXP); en uno
+  externo, como depósito del afiliado que lo avala (tipo EXA).
+- Número: 1 (interno) o 2 (externo) + año en curso + correlativo de 3 dígitos que se reinicia cada año.
+- Todo préstamo externo tiene un afiliado responsable que responde si el tercero no paga.
+
 Los saldos no se guardan: se calculan desde el cuadro aprobado y las aplicaciones de pagos confirmados.
 """
 from dataclasses import dataclass, field
+from datetime import timedelta
 from decimal import Decimal
 
 from django.core.exceptions import ValidationError
@@ -19,12 +30,13 @@ from django.db.models.functions import Coalesce
 from django.utils import timezone
 
 from apps.afiliados.models import Afiliado
-from apps.aportaciones.models import MetodoPago
+from apps.aportaciones import services as mov_services
+from apps.aportaciones.models import MetodoPago, TipoMovimiento
 from apps.aportaciones.services import METODOS_BANCO, METODOS_CAJA, METODOS_CON_REFERENCIA, _validar_monto
 from apps.core import auditoria, parametros
 from apps.core.dinero import CERO, redondear
 from apps.core.models import CuentaFondo
-from apps.core.secuencias import siguiente_numero
+from apps.core.secuencias import numero_prestamo, siguiente_numero
 
 from . import amortizacion
 from .models import AplicacionPago, CuotaAmortizacion, PagoPrestamo, Prestamo, PrestatarioExterno
@@ -38,6 +50,11 @@ CONFIRMADO = PagoPrestamo.Estado.CONFIRMADO
 def tasa_configurada(tipo_prestatario):
     clave = "prestamos.tasa_interna" if tipo_prestatario == Prestamo.Tipo.INTERNO else "prestamos.tasa_externa"
     return parametros.obtener(clave)
+
+
+def tasa_mora_configurada(tipo_prestatario):
+    clave = "prestamos.tasa_mora_interna" if tipo_prestatario == Prestamo.Tipo.INTERNO else "prestamos.tasa_mora_externa"
+    return parametros.obtener(clave) or CERO
 
 
 def metodos_permitidos():
@@ -70,11 +87,12 @@ def _validar_cuenta_metodo(metodo_pago, cuenta, referencia, errores, campo_cuent
 @transaction.atomic
 def aprobar_prestamo(*, usuario, tipo_prestatario, monto_solicitado, monto_aprobado, plazo, metodo_amortizacion,
                      fecha_aprobacion, fecha_primer_vencimiento, afiliado=None, externo=None, tasa=None,
-                     motivo_excepcion="", observaciones=""):
+                     motivo_excepcion="", observaciones="", afiliado_responsable=None):
     """Registra un préstamo aprobado con sus condiciones congeladas y su cuadro de amortización.
 
     `externo` es un dict (nombre_completo, identidad, telefono, direccion) para prestatarios externos;
-    si la identidad ya existe se reutiliza el registro.
+    si la identidad ya existe se reutiliza el registro. `afiliado_responsable` es obligatorio en los externos:
+    es el afiliado que responde por la deuda si el tercero no paga.
     """
     if not usuario.has_perm("prestamos.add_prestamo"):
         raise ValidationError("No tiene permiso para registrar préstamos.")
@@ -137,6 +155,13 @@ def aprobar_prestamo(*, usuario, tipo_prestatario, monto_solicitado, monto_aprob
             errores["externo_nombre"] = "Indique el nombre completo del prestatario externo."
         if not errores.get("externo_identidad") and Afiliado.objects.filter(identidad=identidad).exists():
             errores["externo_identidad"] = "Esa identidad pertenece a un afiliado: registre un préstamo interno."
+        if afiliado_responsable is None:
+            errores["afiliado_responsable"] = "Indique el afiliado que responde si el prestatario externo no paga."
+        else:
+            afiliado_responsable = Afiliado.objects.get(pk=getattr(afiliado_responsable, "pk", afiliado_responsable))
+            if not afiliado_responsable.activo:
+                errores["afiliado_responsable"] = "El afiliado responsable debe estar activo."
+            prestatario["afiliado_responsable"] = afiliado_responsable
     if errores:
         raise ValidationError(errores)
 
@@ -149,10 +174,13 @@ def aprobar_prestamo(*, usuario, tipo_prestatario, monto_solicitado, monto_aprob
 
     filas = amortizacion.generar_cuadro(monto_aprobado, tasa, plazo, metodo_amortizacion, fecha_primer_vencimiento)
     prestamo = Prestamo.objects.create(
-        numero=siguiente_numero("PREST"), tipo_prestatario=tipo_prestatario, monto_solicitado=monto_solicitado,
+        numero=numero_prestamo(tipo_prestatario, timezone.localdate().year), tipo_prestatario=tipo_prestatario, monto_solicitado=monto_solicitado,
         monto_aprobado=monto_aprobado, tasa=tasa, tasa_configurada=configurada,
         periodicidad_tasa=Prestamo.Periodicidad.MENSUAL, tasa_es_excepcion=es_excepcion,
         motivo_excepcion=motivo_excepcion if es_excepcion else "",
+        tasa_mora=tasa_mora_configurada(tipo_prestatario),
+        dias_gracia_mora=parametros.obtener("prestamos.dias_gracia_mora") or 0,
+        dias_maximos_mora=parametros.obtener("prestamos.dias_maximos_mora") or 0,
         excepcion_autorizada_por=usuario if es_excepcion else None, metodo_amortizacion=metodo_amortizacion,
         plazo=plazo, frecuencia_pago=Prestamo.Frecuencia.MENSUAL, fecha_aprobacion=fecha_aprobacion,
         fecha_primer_vencimiento=fecha_primer_vencimiento, observaciones=(observaciones or "").strip(),
@@ -231,6 +259,8 @@ class EstadoCuota:
     cuota: CuotaAmortizacion
     interes_pagado: Decimal
     capital_pagado: Decimal
+    mora: Decimal = CERO  # mora generada por esta cuota hasta la fecha de corte
+    dias_atraso: int = 0
 
     @property
     def interes_pendiente(self):
@@ -248,6 +278,8 @@ class EstadoCuota:
     def estado(self):
         if self.pendiente == 0:
             return "PAGADA"
+        if self.dias_atraso > 0:
+            return "VENCIDA"
         if self.interes_pagado or self.capital_pagado:
             return "PARCIAL"
         return "PENDIENTE"
@@ -263,27 +295,78 @@ class ResumenPrestamo:
     total_pendiente: Decimal = CERO
     cuotas_pagadas: int = 0
     proxima: EstadoCuota | None = None
+    fecha_corte: object = None
+    mora_generada: Decimal = CERO
+    mora_cobrada: Decimal = CERO
+    mora_pendiente: Decimal = CERO
+    cuotas_vencidas: int = 0
 
 
-def estado_cuotas(prestamo):
+def calcular_mora_cuota(cuota, pagos_capital, tasa_mora, dias_gracia, hasta, dias_maximos=0):
+    """Mora de una cuota hasta `hasta`: capital pendiente × (tasa mensual ÷ 30) × días de atraso.
+
+    `pagos_capital` es [(fecha, capital)] de los pagos confirmados aplicados a esta cuota. La mora corre desde el
+    vencimiento más la gracia y, en cada pago, sigue sobre el capital que quedó pendiente. Con `dias_maximos`, deja
+    de aumentar ese número de días después del vencimiento (queda congelada).
+    """
+    if dias_maximos:
+        hasta = min(hasta, cuota.fecha_vencimiento + timedelta(days=dias_maximos))
+    inicio = cuota.fecha_vencimiento + timedelta(days=dias_gracia)
+    if not tasa_mora or hasta <= inicio:
+        return CERO
+    pendiente = cuota.capital - sum((c for f, c in pagos_capital if f <= inicio), CERO)
+    saldo_dias, desde = CERO, inicio
+    for fecha, capital in sorted(pagos_capital):
+        if fecha <= inicio or fecha > hasta:
+            continue
+        saldo_dias += pendiente * (fecha - desde).days
+        pendiente -= capital
+        desde = fecha
+    saldo_dias += pendiente * (hasta - desde).days
+    return redondear(saldo_dias * tasa_mora / Decimal(100) / Decimal(30))
+
+
+def estado_cuotas(prestamo, hasta=None):
+    hasta = hasta or timezone.localdate()
     pagado = {
         f["cuota_id"]: (f["i"], f["c"])
         for f in AplicacionPago.objects.filter(cuota__prestamo=prestamo, pago__estado=CONFIRMADO)
         .values("cuota_id").annotate(i=Sum("interes"), c=Sum("capital"))
     }
-    return [EstadoCuota(c, redondear(pagado.get(c.pk, (CERO, CERO))[0]), redondear(pagado.get(c.pk, (CERO, CERO))[1]))
-            for c in prestamo.cuotas.order_by("numero")]
+    capital_por_fecha = {}
+    for cuota_id, fecha, capital in (AplicacionPago.objects.filter(cuota__prestamo=prestamo, pago__estado=CONFIRMADO,
+                                                                   capital__gt=0)
+                                     .values_list("cuota_id", "pago__fecha", "capital")):
+        capital_por_fecha.setdefault(cuota_id, []).append((fecha, capital))
+    estados = []
+    for c in prestamo.cuotas.order_by("numero"):
+        i, k = pagado.get(c.pk, (CERO, CERO))
+        ec = EstadoCuota(c, redondear(i), redondear(k))
+        if prestamo.fecha_desembolso is not None:
+            ec.mora = calcular_mora_cuota(c, capital_por_fecha.get(c.pk, []), prestamo.tasa_mora,
+                                          prestamo.dias_gracia_mora, hasta, prestamo.dias_maximos_mora)
+            if ec.pendiente > 0 and hasta > c.fecha_vencimiento:
+                ec.dias_atraso = (hasta - c.fecha_vencimiento).days
+        estados.append(ec)
+    return estados
 
 
-def resumen(prestamo):
-    cuotas = estado_cuotas(prestamo)
-    r = ResumenPrestamo(cuotas=cuotas)
+def resumen(prestamo, hasta=None):
+    """Situación del préstamo a la fecha `hasta` (hoy por defecto), incluida la mora generada hasta ese día."""
+    hasta = hasta or timezone.localdate()
+    cuotas = estado_cuotas(prestamo, hasta)
+    r = ResumenPrestamo(cuotas=cuotas, fecha_corte=hasta)
     r.capital_pagado = sum((c.capital_pagado for c in cuotas), CERO)
     r.saldo_capital = prestamo.monto_aprobado - r.capital_pagado
     r.intereses_cobrados = sum((c.interes_pagado for c in cuotas), CERO)
     r.intereses_pendientes = sum((c.interes_pendiente for c in cuotas), CERO)
-    r.total_pendiente = r.saldo_capital + r.intereses_pendientes
+    r.mora_generada = sum((c.mora for c in cuotas), CERO)
+    r.mora_cobrada = redondear(prestamo.pagos.filter(estado=CONFIRMADO, fecha__lte=hasta)
+                               .aggregate(t=Coalesce(Sum("mora"), Value(CERO), output_field=_DEC))["t"])
+    r.mora_pendiente = max(r.mora_generada - r.mora_cobrada, CERO)
+    r.total_pendiente = r.saldo_capital + r.intereses_pendientes + r.mora_pendiente
     r.cuotas_pagadas = sum(1 for c in cuotas if c.estado == "PAGADA")
+    r.cuotas_vencidas = sum(1 for c in cuotas if c.estado == "VENCIDA")
     r.proxima = next((c for c in cuotas if c.pendiente > 0), None)
     return r
 
@@ -308,6 +391,16 @@ def cartera_vigente():
     for p in qs:
         total += p.monto_aprobado - p.capital_pagado
     return redondear(total)
+
+
+def mora_cobrada(desde=None, hasta=None):
+    """Mora efectivamente cobrada (es ingreso, igual que los intereses)."""
+    qs = PagoPrestamo.objects.filter(estado=CONFIRMADO)
+    if desde:
+        qs = qs.filter(fecha__gte=desde)
+    if hasta:
+        qs = qs.filter(fecha__lte=hasta)
+    return redondear(qs.aggregate(t=Coalesce(Sum("mora"), Value(CERO), output_field=_DEC))["t"])
 
 
 def intereses_cobrados(desde=None, hasta=None):
@@ -369,24 +462,44 @@ def registrar_pago(prestamo, *, usuario, tipo, fecha, monto, metodo_pago, cuenta
         if ultimo is not None and fecha < ultimo.fecha:
             raise ValidationError({"fecha": f"Ya existe un pago posterior ({ultimo.fecha:%d/%m/%Y}); "
                                             "registre los pagos en orden de fecha."})
-        cuotas = [c for c in estado_cuotas(prestamo) if c.pendiente > 0]
-        r = resumen(prestamo)
-        if tipo == PagoPrestamo.Tipo.ABONO_CAPITAL:
-            if monto > r.saldo_capital:
-                raise ValidationError({"monto": f"El abono excede el saldo de capital (L {r.saldo_capital:,.2f})."})
-        elif monto > r.total_pendiente:
-            raise ValidationError({"monto": f"El pago excede el total pendiente del préstamo (L {r.total_pendiente:,.2f})."})
-        aplicaciones, restante = _distribuir(cuotas, monto, tipo)
+        r = resumen(prestamo, fecha)
+        cuotas = [c for c in r.cuotas if c.pendiente > 0]
+        # Orden: mora → intereses → capital. El abono extraordinario va solo a capital.
+        mora = min(monto, r.mora_pendiente) if tipo == PagoPrestamo.Tipo.PAGO else CERO
+        limite = r.saldo_capital if tipo == PagoPrestamo.Tipo.ABONO_CAPITAL else r.saldo_capital + r.intereses_pendientes
+        resto = monto - mora
+        excedente = max(resto - limite, CERO)
+        resto -= excedente
+        interno = prestamo.tipo_prestatario == Prestamo.Tipo.INTERNO
+        if excedente and not interno and prestamo.afiliado_responsable_id is None:
+            raise ValidationError({"monto": f"El pago excede lo que debe el préstamo (L {limite + mora:,.2f}) y el "
+                                            "préstamo no tiene afiliado responsable que reciba el excedente."})
+        if mora + resto == 0:
+            raise ValidationError({"monto": "El préstamo no tiene saldo pendiente para este tipo de pago."})
+        aplicaciones, restante = _distribuir(cuotas, resto, tipo)
         assert restante == 0
-        if tipo == PagoPrestamo.Tipo.PAGO and not parametros.obtener("prestamos.permitir_pagos_parciales"):
+        if (tipo == PagoPrestamo.Tipo.PAGO and aplicaciones and not excedente
+                and not parametros.obtener("prestamos.permitir_pagos_parciales")):
             ultima_ec, i, c = aplicaciones[-1]
             if i + c != ultima_ec.pendiente:
                 raise ValidationError({"monto": "La configuración no permite pagos parciales: el monto debe cubrir "
                                                 "cuotas completas."})
         try:
             with transaction.atomic():
+                numero = siguiente_numero("PAG")
+                movimiento = None
+                if excedente:
+                    # Interno: a aportaciones del afiliado. Externo: depósito del afiliado que lo avala.
+                    movimiento, _ = mov_services.registrar_movimiento(
+                        afiliado=prestamo.afiliado if interno else prestamo.afiliado_responsable,
+                        tipo=TipoMovimiento.objects.get(codigo="EXP" if interno else "EXA"), fecha=fecha,
+                        monto=excedente, metodo_pago=metodo_pago, cuenta_fondo=cuenta_fondo, usuario=usuario,
+                        referencia=(referencia or numero).strip(),
+                        observacion=f"Pagado de más en {numero} ({prestamo.numero} · {prestamo.prestatario_nombre})",
+                        automatico=True)
                 pago = PagoPrestamo.objects.create(
-                    numero_recibo=siguiente_numero("PAG"), prestamo=prestamo, tipo=tipo, fecha=fecha, monto=monto,
+                    numero_recibo=numero, prestamo=prestamo, tipo=tipo, fecha=fecha, monto=mora + resto, mora=mora,
+                    excedente=excedente, movimiento_excedente=movimiento,
                     metodo_pago=metodo_pago, cuenta_fondo=cuenta_fondo, referencia=(referencia or "").strip(),
                     observacion=(observacion or "").strip(), registrado_por=usuario,
                     **({"clave_idempotencia": clave_idempotencia} if clave_idempotencia else {}),
@@ -398,12 +511,12 @@ def registrar_pago(prestamo, *, usuario, tipo, fecha, monto, metodo_pago, cuenta
             raise
         AplicacionPago.objects.bulk_create([AplicacionPago(pago=pago, cuota=ec.cuota, interes=i, capital=c)
                                             for ec, i, c in aplicaciones])
-        if resumen(prestamo).total_pendiente == 0:
+        if resumen(prestamo, fecha).total_pendiente == 0:
             prestamo.estado = Prestamo.Estado.PAGADO
             prestamo.save(update_fields=["estado"])
         auditoria.registrar(auditoria.Accion.CREAR, usuario=usuario, objeto=pago,
                             descripcion=f"{pago.get_tipo_display()} {pago.numero_recibo} al préstamo {prestamo.numero}",
-                            despues={**auditoria.instantanea(pago),
+                            despues={**auditoria.instantanea(pago), "mora": str(mora), "excedente": str(excedente),
                                      "aplicaciones": [{"cuota": ec.cuota.numero, "interes": str(i), "capital": str(c)}
                                                       for ec, i, c in aplicaciones]})
     return pago, True
@@ -427,6 +540,9 @@ def anular_pago(pago, *, usuario, motivo):
     if ultimo.pk != pago.pk:
         raise ValidationError(f"Solo puede anularse el último pago del préstamo ({ultimo.numero_recibo}). "
                               "Anule primero los pagos posteriores.")
+    if pago.movimiento_excedente_id:
+        mov_services.anular_movimiento(pago.movimiento_excedente, usuario=usuario, automatico=True,
+                                       motivo=f"Anulación del pago {pago.numero_recibo}: {motivo}")
     antes = auditoria.instantanea(pago)
     pago.estado = PagoPrestamo.Estado.ANULADO
     pago.anulado_por = usuario
@@ -440,3 +556,27 @@ def anular_pago(pago, *, usuario, motivo):
                         descripcion=f"Anulación de {pago.numero_recibo} ({prestamo.numero}). Motivo: {motivo}",
                         antes=antes, despues=auditoria.instantanea(pago))
     return pago
+
+
+@transaction.atomic
+def cambiar_responsable(prestamo, *, afiliado, usuario, motivo):
+    """Asigna o cambia el afiliado que responde por un préstamo externo."""
+    if not usuario.has_perm("prestamos.change_prestamo"):
+        raise ValidationError("No tiene permiso para cambiar el afiliado responsable.")
+    motivo = " ".join((motivo or "").split())
+    if len(motivo) < 10:
+        raise ValidationError({"motivo": "Explique el motivo (mínimo 10 caracteres)."})
+    prestamo = Prestamo.objects.select_for_update().get(pk=prestamo.pk)
+    if prestamo.tipo_prestatario != Prestamo.Tipo.EXTERNO:
+        raise ValidationError("Solo los préstamos externos tienen afiliado responsable.")
+    if prestamo.estado in (Prestamo.Estado.ANULADO, Prestamo.Estado.PAGADO):
+        raise ValidationError("El préstamo ya no está activo.")
+    if afiliado is None or not afiliado.activo:
+        raise ValidationError({"afiliado": "Seleccione un afiliado activo."})
+    anterior = prestamo.afiliado_responsable_id
+    prestamo.afiliado_responsable = afiliado
+    prestamo.save(update_fields=["afiliado_responsable"])
+    auditoria.registrar(auditoria.Accion.MODIFICAR, usuario=usuario, objeto=prestamo,
+                        descripcion=f"Afiliado responsable de {prestamo.numero}: {afiliado.codigo}. Motivo: {motivo}",
+                        antes={"afiliado_responsable_id": anterior}, despues={"afiliado_responsable_id": afiliado.pk})
+    return prestamo

@@ -1,8 +1,9 @@
-"""Reportes de la Fase 1. Usan exactamente los mismos servicios y filtros que los módulos operativos."""
+"""Reportes 1 a 14. Usan exactamente los mismos servicios y filtros que los módulos operativos."""
 from django.core.exceptions import PermissionDenied
 from django.db.models import Count, DecimalField, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils import timezone
 from django.views.generic import TemplateView
 
 from apps.afiliados.forms import FiltroAfiliadosForm
@@ -24,6 +25,7 @@ class IndiceView(PermisoMixin, TemplateView):
         return super().get_context_data(
             afiliados=Afiliado.objects.order_by("codigo"),
             prestamos=_P.objects.exclude(estado="ANULADO").select_related("afiliado", "prestatario_externo").order_by("-id"),
+            distribuciones=Distribucion.objects.order_by("-fecha_fin", "-id"),
             **kwargs)
 
 
@@ -165,7 +167,8 @@ class ReportePrestamosView(PermisoMixin, TemplateView):
 
     def get(self, request, *args, **kwargs):
         form = FiltroPrestamosForm(request.GET or None)
-        qs = pre_services.anotar_saldos(Prestamo.objects.select_related("afiliado", "prestatario_externo")
+        qs = pre_services.anotar_saldos(Prestamo.objects.select_related("afiliado", "prestatario_externo",
+                                                                        "afiliado_responsable")
                                         .order_by("fecha_aprobacion", "id"))
         if form.is_valid():
             qs = aplicar_filtro_prestamos(qs, form.cleaned_data)
@@ -176,14 +179,16 @@ class ReportePrestamosView(PermisoMixin, TemplateView):
                 total_monto += p.monto_aprobado
                 total_saldo += saldo
             filas.append({"url": reverse("prestamos:detalle", args=[p.pk]), "valores": [
-                p.numero, p.fecha_aprobacion, p.prestatario_nombre, p.get_tipo_prestatario_display(), p.monto_aprobado,
+                p.numero, p.fecha_aprobacion, p.prestatario_nombre, p.get_tipo_prestatario_display(),
+                p.afiliado_responsable.codigo if p.afiliado_responsable_id else "", p.monto_aprobado,
                 f"{p.tasa:.2f} %", p.plazo, p.get_metodo_amortizacion_display(), p.intereses_cobrados, saldo,
                 p.get_estado_display()]})
         return _reporte(request, titulo="Préstamos otorgados", nombre="prestamos-otorgados", form=form,
-                        encabezados=["Préstamo", "Aprobado", "Prestatario", "Tipo", "Monto", "Tasa mensual", "Cuotas",
-                                     "Método", "Intereses cobrados", "Saldo capital", "Estado"],
-                        filas=filas, columnas_monto=(4, 8, 9),
-                        totales=["Totales (sin anulados)", "", "", "", total_monto, "", "", "", "", total_saldo, ""],
+                        encabezados=["Préstamo", "Aprobado", "Prestatario", "Tipo", "Responsable", "Monto",
+                                     "Tasa mensual", "Cuotas", "Método", "Intereses cobrados", "Saldo capital", "Estado"],
+                        filas=filas, columnas_monto=(5, 9, 10),
+                        totales=["Totales (sin anulados)", "", "", "", "", total_monto, "", "", "", "", total_saldo,
+                                 ""],
                         resumen=[("Monto otorgado", total_monto), ("Saldo de capital", total_saldo),
                                  ("Préstamos", len(filas))])
 
@@ -198,24 +203,30 @@ class ReporteSaldosPrestamosView(PermisoMixin, TemplateView):
         qs = Prestamo.objects.filter(estado=Prestamo.Estado.VIGENTE).select_related("afiliado", "prestatario_externo")
         if form.is_valid():
             qs = aplicar_filtro_prestamos(qs, form.cleaned_data)
-        filas, t_capital, t_interes = [], CERO, CERO
+        filas, t_capital, t_interes, t_mora, en_mora = [], CERO, CERO, CERO, 0
         for p in qs.order_by("numero"):
             r = pre_services.resumen(p)
             t_capital += r.saldo_capital
             t_interes += r.intereses_pendientes
+            t_mora += r.mora_pendiente
+            atraso = max((c.dias_atraso for c in r.cuotas), default=0)
+            en_mora += 1 if atraso else 0
             prox = r.proxima
             filas.append({"url": reverse("prestamos:detalle", args=[p.pk]), "valores": [
                 p.numero, p.prestatario_nombre, p.monto_aprobado, r.saldo_capital, r.intereses_pendientes,
-                r.total_pendiente, f"{r.cuotas_pagadas}/{p.plazo}", prox.cuota.fecha_vencimiento if prox else None,
-                prox.pendiente if prox else CERO]})
+                r.mora_pendiente, r.total_pendiente, f"{r.cuotas_pagadas}/{p.plazo}", atraso or "",
+                prox.cuota.fecha_vencimiento if prox else None, prox.pendiente if prox else CERO]})
         return _reporte(request, titulo="Saldos pendientes de préstamos", nombre="saldos-prestamos", form=form,
                         encabezados=["Préstamo", "Prestatario", "Monto", "Saldo capital", "Intereses pendientes",
-                                     "Total pendiente", "Cuotas pagadas", "Próximo vencimiento", "Próxima cuota"],
-                        filas=filas, columnas_monto=(2, 3, 4, 5, 8),
-                        totales=["Totales", "", "", t_capital, t_interes, t_capital + t_interes, "", "", ""],
+                                     "Mora pendiente", "Total pendiente", "Cuotas pagadas", "Días de atraso",
+                                     "Próximo vencimiento", "Próxima cuota"],
+                        filas=filas, columnas_monto=(2, 3, 4, 5, 6, 10),
+                        totales=["Totales", "", "", t_capital, t_interes, t_mora, t_capital + t_interes + t_mora, "",
+                                 "", "", ""],
                         resumen=[("Saldo de capital", t_capital), ("Intereses pendientes", t_interes),
-                                 ("Préstamos vigentes", len(filas))],
-                        nota="Intereses pendientes = intereses del cuadro aprobado aún no cobrados.")
+                                 ("Mora pendiente", t_mora), ("Préstamos en mora", en_mora)],
+                        nota="Intereses pendientes = intereses del cuadro aprobado aún no cobrados. Mora = capital "
+                             "vencido × tasa de mora mensual ÷ 30 por día de atraso, calculada a hoy.")
 
 
 class ReportePagosView(PermisoMixin, TemplateView):
@@ -236,23 +247,28 @@ class ReportePagosView(PermisoMixin, TemplateView):
                                   ("estado", "estado"), ("prestamo", "prestamo")):
                 if d.get(campo):
                     qs = qs.filter(**{filtro: d[campo]})
-        filas, t = [], {"monto": CERO, "capital": CERO, "interes": CERO}
+        filas, t = [], {"monto": CERO, "capital": CERO, "interes": CERO, "mora": CERO, "excedente": CERO}
         for pago in qs:
             if pago.estado == PagoPrestamo.Estado.CONFIRMADO:
                 t["monto"] += pago.monto
                 t["capital"] += pago.capital
                 t["interes"] += pago.interes
+                t["mora"] += pago.mora
+                t["excedente"] += pago.excedente
             filas.append({"url": reverse("prestamos:pago_detalle", args=[pago.pk]), "valores": [
                 pago.numero_recibo, pago.fecha, pago.prestamo.numero, pago.prestamo.prestatario_nombre,
-                pago.get_tipo_display(), pago.monto, pago.capital, pago.interes, pago.get_estado_display()]})
+                pago.get_tipo_display(), pago.monto, pago.capital, pago.interes, pago.mora, pago.excedente,
+                pago.get_estado_display()]})
         return _reporte(request, titulo="Pagos recibidos por préstamo", nombre="pagos-prestamos", form=form,
-                        encabezados=["Recibo", "Fecha", "Préstamo", "Prestatario", "Tipo", "Monto", "A capital",
-                                     "A intereses", "Estado"],
-                        filas=filas, columnas_monto=(5, 6, 7), subtitulo=texto,
-                        totales=["Totales confirmados", "", "", "", "", t["monto"], t["capital"], t["interes"], ""],
+                        encabezados=["Recibo", "Fecha", "Préstamo", "Prestatario", "Tipo", "Aplicado", "A capital",
+                                     "A intereses", "A mora", "A aportaciones", "Estado"],
+                        filas=filas, columnas_monto=(5, 6, 7, 8, 9), subtitulo=texto,
+                        totales=["Totales confirmados", "", "", "", "", t["monto"], t["capital"], t["interes"],
+                                 t["mora"], t["excedente"], ""],
                         resumen=[("Total cobrado", t["monto"]), ("Capital recuperado", t["capital"]),
-                                 ("Intereses cobrados", t["interes"])],
-                        nota="El capital recuperado no es ganancia; solo los intereses cobrados son ingreso.")
+                                 ("Intereses cobrados", t["interes"]), ("Mora cobrada", t["mora"])],
+                        nota="El capital recuperado no es ganancia; los intereses y la mora cobrados sí son ingreso. "
+                             "Lo pagado de más por un afiliado se acredita a sus aportaciones.")
 
 
 class ReporteMovimientosActividadView(PermisoMixin, TemplateView):
@@ -329,3 +345,181 @@ def ir_a_cuadro(request):
     formato = request.GET.get("formato", "")
     destino = reverse("prestamos:detalle", args=[prestamo.pk])
     return redirect(f"{destino}?formato={formato}" if formato in ("pdf", "xlsx") else destino)
+
+
+# =========================================================================== Fase 3: reportes 10 a 14
+from apps.aportaciones.services import totales_generales  # noqa: E402
+from apps.caja import services as caja_services  # noqa: E402
+from apps.caja.forms import FiltroLibroForm  # noqa: E402
+from apps.caja.models import MovimientoCaja  # noqa: E402
+from apps.distribucion import services as dist_services  # noqa: E402
+from apps.distribucion.models import Distribucion, PagoGanancia  # noqa: E402
+from apps.prestamos.models import AplicacionPago  # noqa: E402
+
+
+def ir_a_ganancias(request):
+    """10. Ganancias por afiliado: abre la distribución elegida (en pantalla, PDF o Excel)."""
+    if not (request.user.has_perm("core.ver_reportes") and request.user.has_perm("distribucion.view_distribucion")):
+        raise PermissionDenied
+    pk = request.GET.get("distribucion", "")
+    dist = get_object_or_404(Distribucion, pk=int(pk) if pk.isdigit() else 0)
+    formato = request.GET.get("formato", "")
+    destino = reverse("distribucion:detalle", args=[dist.pk])
+    return redirect(f"{destino}?formato={formato}" if formato in ("pdf", "xlsx") else destino)
+
+
+class ReporteDistribucionesView(PermisoMixin, TemplateView):
+    """11. Distribuciones de ganancias."""
+    permission_required = ("core.ver_reportes", "distribucion.view_distribucion")
+
+    def get(self, request, *args, **kwargs):
+        form = FiltroPeriodoForm(request.GET or None)
+        form.fields.pop("actividad")
+        desde, hasta, texto = _periodo(form)
+        qs = Distribucion.objects.order_by("fecha_inicio", "id")
+        if desde:
+            qs = qs.filter(fecha_fin__gte=desde)
+        if hasta:
+            qs = qs.filter(fecha_inicio__lte=hasta)
+        filas, t = [], {"resultado": CERO, "reserva": CERO, "total": CERO, "entregado": CERO}
+        for d in qs:
+            r = dist_services.resumen(d)
+            if d.estado in (Distribucion.Estado.APROBADA, Distribucion.Estado.APLICADA):
+                for k in t:
+                    t[k] += r[k]
+            filas.append({"url": reverse("distribucion:detalle", args=[d.pk]), "valores": [
+                d.codigo, d.fecha_inicio, d.fecha_fin, d.get_base_calculo_display(), len(r["filas"]), r["resultado"],
+                r["reserva"], r["total"], r["entregado"], d.get_estado_display()]})
+        return _reporte(request, titulo="Distribuciones de ganancias", nombre="distribuciones", form=form,
+                        encabezados=["Código", "Desde", "Hasta", "Base", "Afiliados", "Resultado", "Reserva",
+                                     "Repartido", "Entregado", "Estado"],
+                        filas=filas, columnas_monto=(5, 6, 7, 8), subtitulo=texto,
+                        totales=["Totales aprobadas", "", "", "", "", t["resultado"], t["reserva"], t["total"],
+                                 t["entregado"], ""],
+                        resumen=[("Repartido", t["total"]), ("Entregado", t["entregado"]),
+                                 ("Por entregar", t["total"] - t["entregado"])],
+                        nota="Los totales solo suman distribuciones aprobadas o entregadas; los borradores y las "
+                             "anuladas se muestran pero no suman.")
+
+
+class ReporteLibroCajaView(PermisoMixin, TemplateView):
+    """12. Libro de caja y bancos."""
+    permission_required = ("core.ver_reportes", "caja.view_movimientocaja")
+
+    def get(self, request, *args, **kwargs):
+        form = FiltroLibroForm(request.GET or None)
+        cuenta = desde = hasta = None
+        if form.is_valid():
+            cuenta, desde, hasta = (form.cleaned_data.get(k) for k in ("cuenta", "desde", "hasta"))
+        libro = caja_services.libro(cuenta, desde, hasta)
+        filas = [{"url": "", "valores": [desde, "", "Saldo inicial", "", "", None, None, libro.saldo_inicial]}]
+        for f in libro.lineas:
+            filas.append({"url": f.url, "valores": [f.fecha, f.numero, f.origen, f.descripcion, f.cuenta.nombre,
+                                                     f.entrada or None, f.salida or None, f.saldo]})
+        texto = (f"{cuenta.nombre if cuenta else 'Todas las cajas y cuentas'} · "
+                 + (f"del {desde:%d/%m/%Y} " if desde else "desde el inicio ") + f"al {libro.hasta:%d/%m/%Y}")
+        return _reporte(request, titulo="Libro de caja y bancos", nombre="libro-caja", form=form,
+                        encabezados=["Fecha", "Número", "Origen", "Detalle", "Caja o cuenta", "Entrada", "Salida",
+                                     "Saldo"],
+                        filas=filas, columnas_monto=(5, 6, 7), subtitulo=texto,
+                        totales=["Totales", "", "", "", "", libro.entradas, libro.salidas, libro.saldo_final],
+                        resumen=[("Saldo final", libro.saldo_final), ("Saldo inicial", libro.saldo_inicial),
+                                 ("Entradas", libro.entradas), ("Salidas", libro.salidas)],
+                        nota="Reúne aportaciones, depósitos y retiros, desembolsos y pagos de préstamos, actividades, "
+                             "ganancias pagadas y movimientos de caja. Cada operación aparece una sola vez. Las "
+                             "ganancias capitalizadas no mueven dinero y no aparecen.")
+
+
+class ReporteFlujoView(PermisoMixin, TemplateView):
+    """13. Flujo de efectivo."""
+    permission_required = ("core.ver_reportes", "caja.view_movimientocaja")
+
+    def get(self, request, *args, **kwargs):
+        form = FiltroPeriodoForm(request.GET or None)
+        form.fields.pop("actividad")
+        desde, hasta, texto = _periodo(form)
+        flujo = caja_services.flujo_efectivo(desde, hasta)
+        filas = [{"url": "", "valores": [f["origen"], f["entradas"], f["salidas"], f["neto"]]} for f in flujo["filas"]]
+        final = flujo["saldo_inicial"] + flujo["neto"]
+        return _reporte(request, titulo="Flujo de efectivo", nombre="flujo-efectivo", form=form,
+                        encabezados=["Origen", "Entradas", "Salidas", "Neto"], filas=filas, columnas_monto=(1, 2, 3),
+                        subtitulo=texto, totales=["Totales", flujo["entradas"], flujo["salidas"], flujo["neto"]],
+                        resumen=[("Saldo final", final), ("Saldo inicial", flujo["saldo_inicial"]),
+                                 ("Entradas", flujo["entradas"]), ("Salidas", flujo["salidas"])],
+                        nota="Las transferencias entre cajas y cuentas de CAUNE no cambian el total y no se muestran.")
+
+
+def resumen_financiero(hasta):
+    """Recursos de CAUNE frente a lo que pertenece a los afiliados, a una fecha de corte.
+
+    Cuadre: dinero + cartera = aportaciones + depósitos + utilidades no repartidas + fondos que no son utilidad.
+    """
+    dinero = caja_services.saldo(hasta=hasta)
+    desembolsado = sum((p.monto_aprobado for p in Prestamo.objects.filter(fecha_desembolso__lte=hasta)
+                        .exclude(estado=Prestamo.Estado.ANULADO)), CERO)
+    capital_cobrado = sum((a.capital for a in AplicacionPago.objects.filter(
+        pago__estado=PagoPrestamo.Estado.CONFIRMADO, pago__fecha__lte=hasta)), CERO)
+    cartera = desembolsado - capital_cobrado
+    saldos = totales_generales(hasta=hasta)
+    intereses = pre_services.intereses_cobrados(hasta=hasta) + pre_services.mora_cobrada(hasta=hasta)
+    actividades = act_services.resultado_general(hasta=hasta)["neto"]
+    otros = caja_services.otros_resultados(hasta=hasta)["neto"]
+    no_utilidad = CERO
+    for m in MovimientoCaja.objects.confirmados().filter(fecha__lte=hasta, categoria__afecta_utilidades=False):
+        no_utilidad += m.monto if m.tipo == MovimientoCaja.Tipo.INGRESO else -m.monto
+    entregas = PagoGanancia.objects.confirmados().filter(fecha__lte=hasta)
+    pagadas = sum((p.monto for p in entregas if p.forma == PagoGanancia.Forma.PAGO), CERO)
+    capitalizadas = sum((p.monto for p in entregas if p.forma == PagoGanancia.Forma.CAPITALIZACION), CERO)
+    utilidades = intereses + actividades + otros - pagadas - capitalizadas
+    recursos = dinero + cartera
+    obligaciones = saldos["aportaciones"] + saldos["depositos"] + utilidades + no_utilidad
+    return {"dinero": dinero, "cartera": cartera, "recursos": recursos, "aportaciones": saldos["aportaciones"],
+            "depositos": saldos["depositos"], "intereses": intereses, "actividades": actividades, "otros": otros,
+            "pagadas": pagadas, "capitalizadas": capitalizadas, "utilidades": utilidades, "no_utilidad": no_utilidad,
+            "obligaciones": obligaciones, "diferencia": recursos - obligaciones,
+            "por_pagar": dist_services.ganancias_por_pagar()}
+
+
+class ReporteResumenFinancieroView(PermisoMixin, TemplateView):
+    """14. Resumen financiero."""
+    permission_required = ("core.ver_reportes", "core.ver_dashboard_financiero")
+
+    def get(self, request, *args, **kwargs):
+        form = FiltroPeriodoForm(request.GET or None)
+        form.fields.pop("actividad")
+        form.fields.pop("desde")
+        form.fields["hasta"].label = "Fecha de corte"
+        hasta = (form.cleaned_data.get("hasta") if form.is_valid() else None) or timezone.localdate()
+        r = resumen_financiero(hasta)
+
+        def fila(*valores):
+            return {"url": "", "valores": list(valores)}
+
+        filas = [
+            fila("RECURSOS DE CAUNE", ""),
+            fila("Dinero en cajas y bancos", r["dinero"]),
+            fila("Préstamos por cobrar (capital)", r["cartera"]),
+            fila("Total de recursos", r["recursos"]),
+            fila("A QUIÉN PERTENECEN", ""),
+            fila("Aportaciones de afiliados", r["aportaciones"]),
+            fila("Depósitos reembolsables (incluye ganancias capitalizadas)", r["depositos"]),
+            fila("Utilidades acumuladas no repartidas", r["utilidades"]),
+            fila("    Intereses y mora cobrados", r["intereses"]),
+            fila("    Resultado de actividades", r["actividades"]),
+            fila("    Otros ingresos menos gastos de caja", r["otros"]),
+            fila("    Menos ganancias pagadas", -r["pagadas"]),
+            fila("    Menos ganancias capitalizadas", -r["capitalizadas"]),
+            fila("Fondos de caja que no son utilidad (saldo inicial y similares)", r["no_utilidad"]),
+            fila("Total", r["obligaciones"]),
+        ]
+        if r["por_pagar"]:
+            filas.append(fila("Ganancias aprobadas pendientes de entregar (incluidas en utilidades)", r["por_pagar"]))
+        cuadra = r["diferencia"] == 0
+        return _reporte(request, titulo="Resumen financiero", nombre="resumen-financiero", form=form,
+                        encabezados=["Concepto", "Monto"], filas=filas, columnas_monto=(1,),
+                        subtitulo=f"Al {hasta:%d/%m/%Y}",
+                        totales=["Diferencia (debe ser cero)", r["diferencia"]],
+                        resumen=[("Total de recursos", r["recursos"]), ("Utilidades no repartidas", r["utilidades"]),
+                                 ("Cuadre", "Cuadra" if cuadra else f"Diferencia L {r['diferencia']:,.2f}")],
+                        nota="El cuadre compara el dinero y la cartera con lo que pertenece a los afiliados y a CAUNE. "
+                             "Si no es cero, hay operaciones que no se registraron por su módulo.")

@@ -64,6 +64,10 @@ class DashboardView(TemplateView):
                 ctx.update(ver_prestamos=True, cartera=ps.cartera_vigente(), intereses_mes=ps.intereses_cobrados(desde=inicio_mes, hasta=hoy),
                            prestamos_vigentes=Prestamo.objects.filter(estado=Prestamo.Estado.VIGENTE).count(),
                            por_desembolsar=Prestamo.objects.filter(estado=Prestamo.Estado.APROBADO).count())
+            if usuario.has_perm("caja.view_movimientocaja"):
+                from apps.caja import services as cs
+                from apps.distribucion import services as dsv
+                ctx.update(ver_caja=True, dinero=cs.saldo(), por_pagar=dsv.ganancias_por_pagar())
             if usuario.has_perm("actividades.view_actividad"):
                 from apps.actividades import services as acs
                 ctx["actividades_anio"] = acs.resultado_general(desde=hoy.replace(month=1, day=1), hasta=hoy)

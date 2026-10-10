@@ -1,0 +1,77 @@
+{% extends "base.html" %}{% load caune %}
+{% block titulo %}{{ object.codigo }}{% endblock %}
+{% block encabezado %}Distribución {{ object.codigo }}{% endblock %}
+{% block contenido %}
+<div class="acciones no-imprimir" style="margin-bottom:1rem">
+  <a class="btn" href="{% url 'distribucion:lista' %}">{% icono "volver" %}Distribuciones</a>
+  {% if object.estado == 'CALCULADA' %}
+    {% if perms.distribucion.aprobar_distribucion %}<form method="post" action="{% url 'distribucion:aprobar' object.pk %}" onsubmit="return confirm('¿Aprobar {{ object.codigo }}? Después ya no podrá recalcularse.')">{% csrf_token %}<button class="btn primario" type="submit">Aprobar</button></form>{% endif %}
+    {% if perms.distribucion.add_distribucion %}<form method="post" action="{% url 'distribucion:recalcular' object.pk %}">{% csrf_token %}<button class="btn" type="submit">Recalcular con los datos actuales</button></form>{% endif %}
+  {% endif %}
+  {% if object.estado == 'APROBADA' and perms.distribucion.aplicar_distribucion %}<a class="btn primario" href="{% url 'distribucion:entregar' object.pk %}">{% icono "mas" %}Pagar o capitalizar</a>{% endif %}
+  <a class="btn" href="?formato=pdf" target="_blank">{% icono "descargar" %}PDF</a>
+  <a class="btn" href="?formato=xlsx">Excel</a>
+  <button class="btn" type="button" onclick="window.print()">{% icono "imprimir" %}Imprimir</button>
+  {% if object.estado == 'CALCULADA' or object.estado == 'APROBADA' %}{% if perms.distribucion.anular_distribucion %}<a class="btn peligro" href="{% url 'distribucion:anular' object.pk %}">Anular</a>{% endif %}{% endif %}
+</div>
+{% if object.estado == 'ANULADA' %}<div class="aviso-anulado"><strong>Distribución anulada</strong> el {{ object.anulado_en|date:"d/m/Y H:i" }} por {{ object.anulado_por }}. Motivo: {{ object.motivo_anulacion }}</div>{% endif %}
+{% if object.estado == 'CALCULADA' %}<p class="nota"><strong>Borrador.</strong> Calculado el {{ object.calculado_en|date:"d/m/Y H:i" }} por {{ object.calculado_por }}. Si registra o anula operaciones del período, o cambia quién participa en una actividad, recalcule antes de aprobar.</p>{% endif %}
+{% if r.negativos %}<div class="aviso-anulado">{{ r.negativos|length }} afiliado{{ r.negativos|length|pluralize }} con resultado negativo: la pérdida de alguna actividad supera su parte de las ganancias. No se puede aprobar así; revise quién participa en esa actividad.</div>{% endif %}
+
+<div class="kpis">
+  <div class="kpi destacado"><div class="etq">A repartir entre afiliados</div><div class="valor">{{ r.total|lempiras }}</div><div class="det">{{ r.filas|length }} afiliado{{ r.filas|length|pluralize }}</div></div>
+  <div class="kpi aportacion"><div class="etq">Resultado del período</div><div class="valor{% if r.resultado < 0 %} perdida{% endif %}">{{ r.resultado|lempiras }}</div><div class="det">{{ object.fecha_inicio|fecha }} al {{ object.fecha_fin|fecha }}</div></div>
+  <div class="kpi"><div class="etq">Reserva ({{ object.porcentaje_reserva }} %)</div><div class="valor">{{ r.reserva|lempiras }}</div>{% if r.sin_asignar %}<div class="det">Sin participantes: {{ r.sin_asignar|lempiras }} quedan en CAUNE</div>{% endif %}</div>
+  <div class="kpi deposito"><div class="etq">Entregado</div><div class="valor">{{ r.entregado|lempiras }}</div><div class="det">Pendiente: {{ r.pendiente|lempiras }}</div></div>
+</div>
+
+<div class="card">
+  <div class="card-head con-filete"><h2>Fondos que se reparten</h2>{% include "distribucion/_estado.html" with estado=object.estado etiqueta=object.get_estado_display %}</div>
+  <div class="tabla-wrap"><table class="tabla">
+    <thead><tr><th>Fondo</th><th class="num">Ingresos</th><th class="num">Gastos</th><th class="num">Resultado</th><th class="num">Reserva</th><th class="num">A repartir</th><th class="num">Participan</th><th class="num">No participan</th></tr></thead>
+    <tbody>{% for f in r.fondos %}<tr><td><strong>{{ f.nombre }}</strong>
+        {% if f.tipo == 'GENERAL' %}<div class="small muted">Intereses de préstamos {{ f.detalle.intereses_prestamos|lempiras }}{% if f.detalle.mora_prestamos %} · mora {{ f.detalle.mora_prestamos|lempiras }}{% endif %} · otros ingresos {{ f.detalle.otros_ingresos|lempiras }} · gastos {{ f.detalle.otros_egresos|lempiras }}</div>{% else %}<div class="small muted"><a href="{% url 'actividades:detalle' f.actividad_id %}">{{ f.actividad.codigo }}</a></div>{% endif %}</td>
+      <td class="num">{{ f.ingresos|lempiras }}</td><td class="num">{{ f.gastos|lempiras }}</td>
+      <td class="num{% if f.resultado < 0 %} perdida{% endif %}">{{ f.resultado|lempiras }}</td><td class="num">{{ f.reserva|lempiras }}</td>
+      <td class="num{% if f.a_distribuir < 0 %} perdida{% endif %}"><strong>{{ f.a_distribuir|lempiras }}</strong></td>
+      <td class="num">{{ f.participantes }}</td><td class="num">{% if f.excluidos %}<span class="badge aviso">{{ f.excluidos }}</span>{% else %}0{% endif %}</td></tr>
+    {% endfor %}</tbody>
+  </table></div>
+  <p class="muted small">Base del reparto: {{ object.get_base_calculo_display|lower }}. {% if object.incluye_inactivos %}Incluye{% else %}No incluye{% endif %} afiliados inactivos al cierre. Los centavos se asignan por mayor residuo para que la suma sea exacta.</p>
+</div>
+
+<div class="card">
+  <div class="card-head con-filete"><h2>Ganancia por afiliado</h2><span class="small muted">Monto de cada fondo = a repartir × base del afiliado ÷ base total de quienes participan</span></div>
+  <div class="tabla-wrap"><table class="tabla">
+    <thead><tr><th>Afiliado</th><th class="num">Base</th><th class="num">% general</th><th class="num">Total</th><th>Entrega</th>{% for f in r.fondos %}<th class="num">{{ f.nombre }}</th>{% endfor %}</tr></thead>
+    <tbody>{% for x in r.filas %}<tr><td class="nowrap"><a href="{% url 'afiliados:detalle' x.afiliado.pk %}">{{ x.afiliado.codigo }}</a> · {{ x.afiliado.nombre_completo }}</td>
+      <td class="num">{{ x.base|lempiras }}</td><td class="num">{% if x.porcentaje is not None %}{{ x.porcentaje|floatformat:4 }} %{% else %}—{% endif %}</td>
+      <td class="num{% if x.total < 0 %} perdida{% endif %}"><strong>{{ x.total|lempiras }}</strong></td>
+      <td>{% if x.pago %}<span class="badge ok">{% if x.pago.forma == 'PAGO' %}Pagada{% else %}Capitalizada{% endif %}</span> <span class="small muted">{{ x.pago.numero }}</span>{% elif x.total > 0 and object.estado == 'APROBADA' %}<span class="badge aviso">Pendiente</span>{% else %}<span class="muted">—</span>{% endif %}</td>
+      {% for v in x.por_fondo %}<td class="num{% if v < 0 %} perdida{% endif %}">{% if v is None %}<span class="muted" title="No participa en este fondo">—</span>{% else %}{{ v|lempiras }}{% endif %}</td>{% endfor %}</tr>
+    {% empty %}<tr><td colspan="{{ r.fondos|length|add:4 }}" class="vacio">No hay ganancias que repartir en este período.</td></tr>{% endfor %}</tbody>
+  </table></div>
+  <p class="muted small">«—» en un fondo = el afiliado no participa en esa actividad: su ganancia sale solo del resto de utilidades.</p>
+</div>
+
+{% if pagos %}
+<div class="card">
+  <div class="card-head con-filete"><h2>Pagos y capitalizaciones</h2></div>
+  <div class="tabla-wrap"><table class="tabla">
+    <thead><tr><th>Número</th><th>Fecha</th><th>Afiliado</th><th>Forma</th><th>Caja o cuenta</th><th class="num">Monto</th><th>Estado</th></tr></thead>
+    <tbody>{% for p in pagos %}<tr class="{% if p.estado == 'ANULADO' %}anulado{% endif %}"><td class="sin-tachar nowrap">{{ p.numero }}</td><td>{{ p.fecha|fecha }}</td><td>{{ p.afiliado.codigo }} · {{ p.afiliado.nombre_completo }}</td>
+      <td>{{ p.get_forma_display }}{% if p.movimiento_afiliado_id %} · <a href="{% url 'aportaciones:detalle' p.movimiento_afiliado_id %}">ver depósito</a>{% endif %}</td><td class="small">{{ p.cuenta_fondo.nombre }}</td><td class="num">{{ p.monto|lempiras }}</td>
+      <td class="sin-tachar">{% if p.estado == 'ANULADO' %}<span class="badge mal">Anulado</span>{% else %}<span class="badge ok">Confirmado</span>{% if perms.distribucion.anular_pagoganancia %} <a class="btn sm" href="{% url 'distribucion:anular_pago' p.pk %}">Anular</a>{% endif %}{% endif %}</td></tr>
+    {% endfor %}</tbody>
+  </table></div>
+</div>
+{% endif %}
+
+<div class="card"><h2>Datos</h2>
+  <dl class="datos">
+    <div><dt>Calculada</dt><dd class="small">{{ object.calculado_en|date:"d/m/Y H:i" }} · {{ object.calculado_por }}</dd></div>
+    <div><dt>Aprobada</dt><dd class="small">{% if object.aprobado_por %}{{ object.aprobado_en|date:"d/m/Y H:i" }} · {{ object.aprobado_por }}{% else %}Pendiente{% endif %}</dd></div>
+    {% if object.observaciones %}<div style="grid-column:1/-1"><dt>Observaciones</dt><dd>{{ object.observaciones }}</dd></div>{% endif %}
+  </dl>
+</div>
+{% endblock %}

@@ -41,5 +41,26 @@
   <a class="card" href="{% url 'reportes:resultados_actividades' %}">{% icono "reportes" %}<div><h3>9. Ganancias y pérdidas</h3><p>Resultado neto por actividad y subactividad.</p></div></a>
 </div>
 {% endif %}
-<p class="muted small">Los reportes 10 a 14 (ganancias por afiliado, distribuciones, caja y bancos, flujo de efectivo y resumen financiero) se agregarán en la Fase 3.</p>
+{% if perms.distribucion.view_distribucion %}
+<h2>Ganancias</h2>
+<div class="card">
+  <h2>10. Ganancias por afiliado</h2>
+  <form method="get" action="{% url 'reportes:ganancias' %}" class="filtros" style="margin:0">
+    <div class="campo"><label for="ga-d">Distribución</label><select id="ga-d" name="distribucion" required><option value="">Seleccione…</option>{% for d in distribuciones %}<option value="{{ d.pk }}">{{ d.codigo }} · {{ d.fecha_inicio|fecha }} al {{ d.fecha_fin|fecha }} ({{ d.get_estado_display }})</option>{% endfor %}</select></div>
+    <div class="campo"><label for="ga-f">Formato</label><select id="ga-f" name="formato"><option value="">En pantalla</option><option value="pdf">PDF</option><option value="xlsx">Excel</option></select></div>
+    <div class="acciones"><button class="btn primario" type="submit">Abrir</button></div>
+  </form>
+</div>
+<div class="grid-config" style="margin-bottom:1.35rem">
+  <a class="card" href="{% url 'reportes:distribuciones' %}">{% icono "ganancias" %}<div><h3>11. Distribuciones de ganancias</h3><p>Resultado, reserva, repartido y entregado por período.</p></div></a>
+</div>
+{% endif %}
+{% if perms.caja.view_movimientocaja or perms.core.ver_dashboard_financiero %}
+<h2>Caja y finanzas</h2>
+<div class="grid-config" style="margin-bottom:1.35rem">
+  {% if perms.caja.view_movimientocaja %}<a class="card" href="{% url 'reportes:libro_caja' %}">{% icono "caja" %}<div><h3>12. Libro de caja y bancos</h3><p>Entradas, salidas y saldo por caja o cuenta.</p></div></a>
+  <a class="card" href="{% url 'reportes:flujo' %}">{% icono "movimientos" %}<div><h3>13. Flujo de efectivo</h3><p>De dónde vino y a dónde fue el dinero en un período.</p></div></a>{% endif %}
+  {% if perms.core.ver_dashboard_financiero %}<a class="card" href="{% url 'reportes:resumen_financiero' %}">{% icono "reportes" %}<div><h3>14. Resumen financiero</h3><p>Recursos de CAUNE, a quién pertenecen y verificación del cuadre.</p></div></a>{% endif %}
+</div>
+{% endif %}
 {% endblock %}

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block titulo %}Registrar {{ tipo_nombre|lower }}{% endblock %}
+{% block encabezado %}Caja y bancos · {{ tipo_nombre }}{% endblock %}
+{% block contenido %}
+<div class="card" style="max-width:900px">
+  {% if tipo == 'TRANSFERENCIA' %}
+  <p class="nota">Una transferencia mueve dinero entre dos cajas o cuentas de CAUNE (por ejemplo, depositar el efectivo de la caja en el banco). No es ingreso ni gasto: el total disponible no cambia.</p>
+  {% else %}
+  <p class="nota">Use esta pantalla solo para dinero que no viene de afiliados, préstamos ni actividades (esas operaciones ya entran solas al libro de caja). Una vez guardado, el registro no puede editarse; si hubo un error, otra persona autorizada debe anularlo con su motivo.</p>
+  {% endif %}
+  <form method="post" novalidate onsubmit="var b=this.querySelector('button[type=submit]');b.disabled=true;b.textContent='Guardando…';">{% csrf_token %}
+    {% include "partials/campos.html" %}
+    <div class="form-pie"><a class="btn" href="{% url 'caja:indice' %}">Cancelar</a><button class="btn primario" type="submit">Confirmar y registrar</button></div>
+  </form>
+</div>
+{% endblock %}

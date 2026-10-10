@@ -11,6 +11,6 @@
       <td>{% if perms.core.change_cuentafondo %}<a class="btn sm" href="{% url 'core:cuenta_editar' c.pk %}">Modificar</a>{% endif %}</td></tr>
     {% empty %}<tr><td colspan="7" class="vacio">No hay cajas ni cuentas registradas.</td></tr>{% endfor %}</tbody>
   </table></div>
-  <p class="muted small">Los saldos, transferencias y conciliaciones de caja y bancos se implementan en la Fase 3.</p>
+  <p class="muted small">Los saldos, el libro de caja y las transferencias están en {% if perms.caja.view_movimientocaja %}<a href="{% url 'caja:indice' %}">Caja y bancos</a>{% else %}Caja y bancos{% endif %}.</p>
 </div>
 {% endblock %}

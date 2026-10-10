@@ -3,6 +3,7 @@ import uuid
 from django import forms
 from django.utils import timezone
 
+from apps.afiliados.models import Afiliado
 from apps.aportaciones.models import MetodoPago
 from apps.core.models import CuentaFondo
 
@@ -43,6 +44,17 @@ class MovimientoActividadForm(forms.Form):
         if not self.is_bound:
             self.initial.setdefault("clave_idempotencia", uuid.uuid4())
             self.initial.setdefault("fecha", timezone.localdate())
+
+
+class ExclusionForm(forms.Form):
+    afiliado = forms.ModelChoiceField(queryset=Afiliado.objects.none(), label="Afiliado que NO participa")
+    motivo = forms.CharField(label="Motivo", min_length=10, widget=forms.Textarea(attrs={"rows": 3}),
+                             help_text="Por ejemplo: no aportó trabajo ni dinero a esta actividad.")
+
+    def __init__(self, *args, actividad, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["afiliado"].queryset = (Afiliado.objects.exclude(exclusiones_actividad__actividad=actividad)
+                                            .order_by("codigo"))
 
 
 class MotivoForm(forms.Form):

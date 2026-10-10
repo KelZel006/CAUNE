@@ -67,6 +67,64 @@ DEFINICIONES = {
         afecta_calculos=True,
         descripcion="Si se permite, una tasa distinta a la configurada exige permiso de autorización y motivo.",
     ),
+    "prestamos.tasa_mora_interna": dict(
+        nombre="Tasa de mora de préstamos internos (% mensual)", tipo=T.DECIMAL, grupo=G.PRESTAMOS, valor="1.00",
+        afecta_calculos=True,
+        descripcion="Se cobra sobre el capital de cada cuota vencida y no pagada, por día de atraso "
+                    "(tasa ÷ 30 por día). Se copia a cada préstamo al aprobarlo.",
+    ),
+    "prestamos.tasa_mora_externa": dict(
+        nombre="Tasa de mora de préstamos externos (% mensual)", tipo=T.DECIMAL, grupo=G.PRESTAMOS, valor="5.00",
+        afecta_calculos=True,
+        descripcion="Se cobra sobre el capital de cada cuota vencida y no pagada, por día de atraso "
+                    "(tasa ÷ 30 por día). Se copia a cada préstamo al aprobarlo.",
+    ),
+    "prestamos.dias_gracia_mora": dict(
+        nombre="Días de gracia antes de cobrar mora", tipo=T.ENTERO, grupo=G.PRESTAMOS, valor="0",
+        afecta_calculos=True,
+        descripcion="La mora empieza a contar este número de días después del vencimiento. Se copia a cada "
+                    "préstamo al aprobarlo.",
+    ),
+    "prestamos.dias_maximos_mora": dict(
+        nombre="Días de atraso tras los cuales la mora se congela", tipo=T.ENTERO, grupo=G.PRESTAMOS, valor="90",
+        afecta_calculos=True,
+        descripcion="Pasados estos días desde el vencimiento de una cuota, su mora deja de aumentar. 0 = sin límite. "
+                    "Se copia a cada préstamo al aprobarlo.",
+    ),
+    "caja.permitir_saldo_negativo": dict(
+        nombre="Permitir egresos que dejen la caja o cuenta en negativo", tipo=T.BOOLEANO, grupo=G.CAJA,
+        valor="false", afecta_calculos=True,
+        descripcion="Si está desactivado, un egreso, una transferencia o un pago de ganancias no puede dejar "
+                    "la caja o cuenta con saldo negativo en ninguna fecha.",
+    ),
+    "distribucion.base_calculo": dict(
+        nombre="Base para repartir las ganancias", tipo=T.TEXTO, grupo=G.GANANCIAS, valor="PROMEDIO_DIARIO",
+        afecta_calculos=True,
+        descripcion="Quien más aporta, más recibe. PROMEDIO_DIARIO: saldo de aportaciones promedio de cada día del "
+                    "período (cuenta cuánto tiempo estuvo el dinero). SALDO_CIERRE: saldo de aportaciones al último "
+                    "día del período.",
+    ),
+    "distribucion.porcentaje_reserva": dict(
+        nombre="Reserva antes de repartir (% de cada utilidad positiva)", tipo=T.DECIMAL, grupo=G.GANANCIAS,
+        valor="0.00", afecta_calculos=True,
+        descripcion="Porcentaje que se queda en CAUNE como reserva antes de repartir. 0 = se reparte todo.",
+    ),
+    "distribucion.incluir_inactivos": dict(
+        nombre="Incluir afiliados inactivos al cierre del período", tipo=T.BOOLEANO, grupo=G.GANANCIAS,
+        valor="false", afecta_calculos=True,
+        descripcion="Si está desactivado, solo reciben ganancias los afiliados activos al último día del período.",
+    ),
+    "distribucion.aprobacion_requiere_otro_usuario": dict(
+        nombre="La distribución la aprueba un usuario distinto al que la calculó", tipo=T.BOOLEANO,
+        grupo=G.GANANCIAS, valor="true", afecta_calculos=True,
+        descripcion="Control de doble persona antes de pagar o capitalizar ganancias.",
+    ),
+    "distribucion.tipo_capitalizacion": dict(
+        nombre="Tipo de movimiento para capitalizar ganancias", tipo=T.TEXTO, grupo=G.GANANCIAS, valor="GAN",
+        afecta_calculos=True,
+        descripcion="Código del tipo de entrada donde se acreditan las ganancias capitalizadas (por defecto GAN, "
+                    "una aportación).",
+    ),
 }
 
 
@@ -91,8 +149,43 @@ def _validar_plazo(valor):
         raise ValueError("El plazo máximo debe estar entre 1 y 360 cuotas.")
 
 
+def _validar_gracia(valor):
+    if valor is None or not (0 <= valor <= 90):
+        raise ValueError("Los días de gracia deben estar entre 0 y 90.")
+
+
+def _validar_maximo_mora(valor):
+    if valor is None or not (0 <= valor <= 3650):
+        raise ValueError("Indique entre 0 y 3650 días (0 = sin límite).")
+
+
+def _validar_base(valor):
+    if valor not in ("PROMEDIO_DIARIO", "SALDO_CIERRE"):
+        raise ValueError("Indique PROMEDIO_DIARIO o SALDO_CIERRE.")
+
+
+def _validar_porcentaje(valor):
+    if valor is None or not (0 <= valor < 100):
+        raise ValueError("El porcentaje debe estar entre 0 y 99.99.")
+
+
+def _validar_tipo_capitalizacion(valor):
+    from apps.aportaciones.models import TipoMovimiento
+
+    if not TipoMovimiento.objects.filter(codigo=valor, activo=True,
+                                         naturaleza=TipoMovimiento.Naturaleza.ENTRADA).exists():
+        raise ValueError("Indique el código de un tipo de movimiento de entrada activo.")
+
+
 # Validaciones de negocio adicionales al tipo de dato
 VALIDADORES = {
+    "prestamos.tasa_mora_interna": _validar_tasa,
+    "prestamos.tasa_mora_externa": _validar_tasa,
+    "prestamos.dias_gracia_mora": _validar_gracia,
+    "prestamos.dias_maximos_mora": _validar_maximo_mora,
+    "distribucion.base_calculo": _validar_base,
+    "distribucion.porcentaje_reserva": _validar_porcentaje,
+    "distribucion.tipo_capitalizacion": _validar_tipo_capitalizacion,
     "prestamos.tasa_interna": _validar_tasa,
     "prestamos.tasa_externa": _validar_tasa,
     "prestamos.periodicidad_tasa": _validar_periodicidad,

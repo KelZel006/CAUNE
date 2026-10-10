@@ -7,8 +7,8 @@ from apps.afiliados.views import _agregar_errores
 from apps.core.mixins import ListaMixin, PermisoMixin
 
 from . import services
-from .forms import ActividadForm, MotivoForm, MovimientoActividadForm, SubactividadForm
-from .models import Actividad, MovimientoActividad
+from .forms import ActividadForm, ExclusionForm, MotivoForm, MovimientoActividadForm, SubactividadForm
+from .models import Actividad, ExclusionActividad, MovimientoActividad
 
 
 class ActividadListView(PermisoMixin, ListaMixin, ListView):
@@ -83,7 +83,7 @@ class ActividadDetailView(PermisoMixin, DetailView):
         return super().get_context_data(
             resultado=services.resultado_actividad(a), por_sub=services.resultados_por_subactividad(a),
             movimientos=a.movimientos.select_related("subactividad", "cuenta_fondo").order_by("-fecha", "-id")[:50],
-            **kwargs)
+            exclusiones=a.exclusiones.select_related("afiliado", "registrado_por"), **kwargs)
 
 
 class _AccionActividadMixin(PermisoMixin):
@@ -178,3 +178,50 @@ class AnularMovimientoView(PermisoMixin, FormView):
             return self.form_invalid(form)
         messages.success(self.request, f"{self.mov.numero} anulado.")
         return redirect("actividades:detalle", pk=self.mov.actividad_id)
+
+
+class ExcluirAfiliadoView(_AccionActividadMixin, FormView):
+    permission_required = "actividades.gestionar_participacion"
+    form_class = ExclusionForm
+    template_name = "actividades/participacion.html"
+
+    def get_form_kwargs(self):
+        return {**super().get_form_kwargs(), "actividad": self.actividad}
+
+    def get_context_data(self, **kwargs):
+        return super().get_context_data(titulo="Marcar afiliado que no participa", **kwargs)
+
+    def form_valid(self, form):
+        try:
+            services.excluir_afiliado(self.actividad, form.cleaned_data["afiliado"], usuario=self.request.user,
+                                      motivo=form.cleaned_data["motivo"])
+        except ValidationError as error:
+            _agregar_errores(form, error)
+            return self.form_invalid(form)
+        messages.success(self.request, f"{form.cleaned_data['afiliado'].codigo} no participará en las ganancias de "
+                                       "esta actividad.")
+        return redirect("actividades:detalle", pk=self.actividad.pk)
+
+
+class IncluirAfiliadoView(PermisoMixin, FormView):
+    permission_required = "actividades.gestionar_participacion"
+    form_class = MotivoForm
+    template_name = "actividades/participacion.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        self.exclusion = get_object_or_404(ExclusionActividad.objects.select_related("actividad", "afiliado"),
+                                           pk=kwargs["pk"])
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        return super().get_context_data(actividad=self.exclusion.actividad, exclusion=self.exclusion,
+                                        titulo=f"Volver a incluir a {self.exclusion.afiliado.codigo}", **kwargs)
+
+    def form_valid(self, form):
+        try:
+            services.incluir_afiliado(self.exclusion, usuario=self.request.user, motivo=form.cleaned_data["motivo"])
+        except ValidationError as error:
+            _agregar_errores(form, error)
+            return self.form_invalid(form)
+        messages.success(self.request, f"{self.exclusion.afiliado.codigo} vuelve a participar en las ganancias.")
+        return redirect("actividades:detalle", pk=self.exclusion.actividad_id)

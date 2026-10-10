@@ -1,0 +1,16 @@
+{% extends "base.html" %}{% load caune %}
+{% block titulo %}Categorías de caja{% endblock %}
+{% block encabezado %}Categorías de caja{% endblock %}
+{% block contenido %}
+<div class="card">
+  <div class="card-head"><a class="btn" href="{% url 'caja:indice' %}">{% icono "volver" %}Caja y bancos</a>{% if perms.caja.add_categoriacaja %}<a class="btn primario" href="{% url 'caja:categoria_crear' %}">{% icono "mas" %}Nueva categoría</a>{% endif %}</div>
+  <div class="tabla-wrap"><table class="tabla">
+    <thead><tr><th>Tipo</th><th>Categoría</th><th>¿Cuenta en la utilidad a repartir?</th><th>Estado</th><th></th></tr></thead>
+    <tbody>{% for c in object_list %}<tr><td>{{ c.get_tipo_display }}</td><td><strong>{{ c.nombre }}</strong>{% if c.descripcion %}<div class="muted small">{{ c.descripcion }}</div>{% endif %}</td>
+      <td>{% if c.afecta_utilidades %}<span class="badge info">Sí · {% if c.tipo == 'INGRESO' %}suma{% else %}resta{% endif %}</span>{% else %}<span class="badge off">No · solo mueve dinero</span>{% endif %}</td>
+      <td>{% if c.activa %}<span class="badge ok">Activa</span>{% else %}<span class="badge off">Inactiva</span>{% endif %}</td>
+      <td>{% if perms.caja.change_categoriacaja %}<a class="btn sm" href="{% url 'caja:categoria_editar' c.pk %}">Modificar</a>{% endif %}</td></tr>
+    {% empty %}<tr><td colspan="5" class="vacio">Sin categorías.</td></tr>{% endfor %}</tbody>
+  </table></div>
+</div>
+{% endblock %}
