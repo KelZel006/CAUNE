@@ -8,7 +8,8 @@ from apps.core.exportar import respuesta_pdf, respuesta_xlsx
 from apps.core.mixins import ListaMixin, PermisoMixin
 
 from . import services
-from .forms import DesembolsoForm, FiltroPrestamosForm, MotivoForm, PagoForm, PrestamoForm, ResponsableForm
+from .forms import (DesembolsoForm, FiltroPrestamosForm, MotivoForm, PagoForm, PrestamoForm, PrestatarioExternoForm,
+                    ResponsableForm)
 from .models import PagoPrestamo, Prestamo
 
 
@@ -104,8 +105,17 @@ class PrestamoDetailView(PermisoMixin, DetailView):
         self.resumen = services.resumen(self.object)
         formato = request.GET.get("formato")
         if formato == "pdf":
-            return respuesta_pdf("prestamos/cuadro_pdf.html", {"p": self.object, "r": self.resumen},
-                                 f"cuadro-{self.object.numero}", request)
+            r = self.resumen
+            cuotas = [c.cuota for c in r.cuotas]
+            return respuesta_pdf("prestamos/cuadro_pdf.html", {
+                "p": self.object, "r": r,
+                "total_intereses": sum((c.interes for c in cuotas), 0),
+                "total_cuotas": sum((c.cuota for c in cuotas), 0),
+                "resumen_pdf": [("Saldo de capital", r.saldo_capital), ("Intereses cobrados", r.intereses_cobrados),
+                                ("Intereses pendientes", r.intereses_pendientes), ("Mora pendiente", r.mora_pendiente),
+                                ("Total pendiente", r.total_pendiente),
+                                ("Cuotas pagadas", f"{r.cuotas_pagadas} de {self.object.plazo}")],
+            }, f"cuadro-{self.object.numero}", request)
         if formato == "xlsx":
             filas = [[c.cuota.numero, c.cuota.fecha_vencimiento.strftime("%d/%m/%Y"), c.cuota.saldo_inicial,
                       c.cuota.capital, c.cuota.interes, c.cuota.cuota, c.cuota.saldo_final, c.capital_pagado,
@@ -123,6 +133,7 @@ class PrestamoDetailView(PermisoMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         return super().get_context_data(r=self.resumen, pagos=self.object.pagos.select_related("registrado_por"),
+                                        interes_total=sum((c.cuota.interes for c in self.resumen.cuotas), 0),
                                         **kwargs)
 
 
@@ -210,7 +221,7 @@ class PagoDetailView(PermisoMixin, DetailView):
         if request.GET.get("formato") == "pdf":
             return respuesta_pdf("prestamos/recibo_pago_pdf.html",
                                  {"pago": self.object, "aplicaciones": self.object.aplicaciones.select_related("cuota"),
-                                  "r": services.resumen(self.object.prestamo)},
+                                  "saldo_despues": services.saldo_despues_de_pago(self.object)},
                                  f"recibo-{self.object.numero_recibo}", request)
         return self.render_to_response(self.get_context_data(object=self.object))
 
@@ -258,3 +269,60 @@ class ResponsableView(_AccionPrestamoMixin, FormView):
             return self.form_invalid(form)
         messages.success(self.request, "Afiliado responsable actualizado.")
         return redirect("prestamos:detalle", pk=self.prestamo.pk)
+
+
+class PrestatarioExternoView(_AccionPrestamoMixin, FormView):
+    """Corrige los datos del prestatario externo de un préstamo."""
+    permission_required = "prestamos.change_prestamo"
+    form_class = PrestatarioExternoForm
+    template_name = "prestamos/externo.html"
+
+    def get(self, request, *args, **kwargs):
+        if self.prestamo.prestatario_externo_id is None:
+            messages.error(request, "Este préstamo no es de un prestatario externo.")
+            return redirect("prestamos:detalle", pk=self.prestamo.pk)
+        return super().get(request, *args, **kwargs)
+
+    def get_initial(self):
+        e = self.prestamo.prestatario_externo
+        return {"nombre_completo": e.nombre_completo, "identidad": e.identidad, "telefono": e.telefono,
+                "direccion": e.direccion} if e else {}
+
+    def get_context_data(self, **kwargs):
+        otros = []
+        if self.prestamo.prestatario_externo_id:
+            otros = (Prestamo.objects.filter(prestatario_externo_id=self.prestamo.prestatario_externo_id)
+                     .exclude(pk=self.prestamo.pk).order_by("numero"))
+        return super().get_context_data(otros=otros, **kwargs)
+
+    def form_valid(self, form):
+        if self.prestamo.prestatario_externo_id is None:
+            form.add_error(None, "Este préstamo no es de un prestatario externo.")
+            return self.form_invalid(form)
+        datos = dict(form.cleaned_data)
+        motivo = datos.pop("motivo")
+        try:
+            services.actualizar_externo(self.prestamo.prestatario_externo, datos, usuario=self.request.user,
+                                        motivo=motivo)
+        except ValidationError as error:
+            _agregar_errores(form, error)
+            return self.form_invalid(form)
+        messages.success(self.request, "Datos del prestatario externo actualizados.")
+        return redirect("prestamos:detalle", pk=self.prestamo.pk)
+
+
+class ComprobanteDesembolsoView(PermisoMixin, DetailView):
+    """Comprobante de desembolso del préstamo (PDF con original y copia)."""
+    permission_required = "prestamos.view_prestamo"
+    queryset = Prestamo.objects.select_related("afiliado", "prestatario_externo", "afiliado_responsable",
+                                               "cuenta_desembolso", "desembolsado_por")
+
+    def get(self, request, *args, **kwargs):
+        p = self.get_object()
+        if p.fecha_desembolso is None:
+            messages.error(request, "El préstamo todavía no se ha desembolsado.")
+            return redirect("prestamos:detalle", pk=p.pk)
+        intereses = sum((c.interes for c in p.cuotas.all()), 0)
+        return respuesta_pdf("prestamos/desembolso_pdf.html",
+                             {"p": p, "intereses_cuadro": intereses, "total_cuadro": p.monto_aprobado + intereses},
+                             f"desembolso-{p.numero}", request)

@@ -1,0 +1,22 @@
+{% extends "pdf/recibo_base.html" %}{% load caune %}
+{% block titulo_html %}Liquidación {{ l.numero }}{% endblock %}
+{% block folio_etiqueta %}LIQUIDACIÓN{% endblock %}
+{% block numero %}{{ l.numero }}{% endblock %}
+{% block fecha %}{{ l.fecha|default:l.fecha_calculo|fecha }}{% endblock %}
+{% block titulo %}LIQUIDACIÓN Y BAJA DE AFILIADO{% endblock %}
+{% block subtitulo %}{{ l.afiliado.codigo }} · {{ l.afiliado.nombre_completo }} · Identidad {{ l.afiliado.identidad|identidad }}{% endblock %}
+{% block destino_original %}ORIGINAL · AFILIADO{% endblock %}
+{% block aviso_anulado %}{% if l.estado == 'ANULADA' %}{% include "pdf/_anulado.html" with fecha=l.anulado_en por=l.anulado_por motivo=l.motivo_anulacion %}{% endif %}{% endblock %}
+{% block datos %}
+  <tr><td class="etq">Saldo de aportaciones</td><td>{{ l.aportaciones|lempiras }}</td></tr>
+  <tr><td class="etq">Saldo de depósitos</td><td>{{ l.depositos|lempiras }}</td></tr>
+  {% if l.ganancias %}<tr><td class="etq">Ganancias por entregar</td><td>{{ l.ganancias|lempiras }} ({% for g in l.detalle.ganancias %}{{ g.codigo }}{% if not forloop.last %}, {% endif %}{% endfor %})</td></tr>{% endif %}
+  <tr><td class="etq">Menos: préstamos</td><td>{% if l.deuda_prestamos %}{{ l.deuda_prestamos|lempiras }} ({% for p in l.detalle.prestamos %}{{ p.numero }}{% if p.avalado %} de {{ p.prestatario }}{% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}, cancelados){% else %}Sin deudas{% endif %}</td></tr>
+  <tr><td class="etq">Entregado desde</td><td>{{ l.cuenta_fondo.nombre }} · {{ l.get_metodo_pago_display }}{% if l.referencia %} · Ref. {{ l.referencia }}{% endif %}</td></tr>
+  <tr><td class="etq">Motivo del retiro</td><td>{{ l.motivo }}</td></tr>
+{% endblock %}
+{% block monto_bloque %}{% include "pdf/_monto.html" with monto=l.neto etiqueta="NETO ENTREGADO" %}{% endblock %}
+{% block sello %}{% if l.estado == 'EJECUTADA' %}{% include "pdf/_sello.html" %}{% endif %}{% endblock %}
+{% block firma_izquierda %}Entregó · {{ l.ejecutado_por.get_full_name|default:l.ejecutado_por.username }}{% endblock %}
+{% block firma_derecha %}Recibí conforme · {{ l.afiliado.nombre_completo }}{% endblock %}
+{% block nota %}El afiliado recibe lo que le corresponde, sus préstamos quedan cancelados y queda dado de baja de {{ coop.siglas }} desde la fecha indicada. Constancia registrada en el sistema.{% endblock %}

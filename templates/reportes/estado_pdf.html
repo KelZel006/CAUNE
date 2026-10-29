@@ -1,0 +1,33 @@
+{% extends "pdf/base_pdf.html" %}{% load caune %}
+{% block orientacion %}{{ orientacion|default:"portrait" }}{% endblock %}
+{% block titulo_html %}{{ titulo }}{% endblock %}
+{% block tipo_documento %}{% if estados|length > 1 %}Estados financieros{% else %}Estado financiero{% endif %}{% endblock %}
+{% block titulo %}{{ titulo }}{% endblock %}
+{% block subtitulo_bloque %}{% if estados|length == 1 %}<p class="doc-subtitulo">{{ estados.0.subtitulo }}</p>{% else %}<p class="doc-subtitulo">Balance general, estado de resultados, cambios en el patrimonio, flujo de efectivo e indicadores</p>{% endif %}{% endblock %}
+{% block contenido %}
+<style>
+  tr.seccion td { font-weight: bold; color: #13284b; background-color: #f1f4fa; padding-top: 5px; border-bottom: .8px solid #c9a13b; }
+  tr.subtotal td { font-weight: bold; }
+  tr.total td { font-weight: bold; color: #13284b; background-color: #e6ecf6; border-top: 1px solid #13284b; border-bottom: 1px solid #13284b; }
+  td.nivel-1 { padding-left: 14px; }
+  td.nivel-2 { padding-left: 26px; }
+  .alerta { color: #b42318; font-weight: bold; }
+</style>
+{% for estado in estados %}
+{% if not forloop.first %}<pdf:nextpage />{% endif %}
+{% if estados|length > 1 %}<p class="doc-titulo">{{ estado.titulo }}</p><p class="doc-subtitulo">{{ estado.subtitulo }}</p>{% endif %}
+{% if estado.diferencia is not None and estado.diferencia != 0 %}<p class="alerta">No cuadra: diferencia de {{ estado.diferencia|lempiras }}.</p>{% endif %}
+<table{% if estado.columnas|length > 3 %} style="font-size:7.5pt"{% endif %}>
+  <thead><tr><th style="width:{% if estado.columnas|length > 3 %}28{% else %}52{% endif %}%">Concepto</th>{% for c in estado.columnas %}<th class="num">{{ c }}</th>{% endfor %}</tr></thead>
+  <tbody>{% for f in estado.filas %}<tr class="{{ f.tipo }}"><td class="nivel-{{ f.nivel }}">{{ f.concepto }}</td>{% if f.tipo == "seccion" %}{% for c in estado.columnas %}<td></td>{% endfor %}{% else %}{% for v in f.valores %}<td class="num">{{ v|celda }}</td>{% endfor %}{% endif %}</tr>{% endfor %}</tbody>
+</table>
+{% if estado.nota %}<p class="muted">{{ estado.nota }}</p>{% endif %}
+{% if estado.firmas %}
+<table class="firmas-doc"><tr>
+  <td style="width:33%"><div class="linea">{% if firmas.tesorero %}{{ firmas.tesorero }}<br>{% endif %}Tesorero</div></td>
+  <td style="width:34%"><div class="linea">{% if firmas.presidente %}{{ firmas.presidente }}<br>{% endif %}Presidente</div></td>
+  <td style="width:33%"><div class="linea">{% if firmas.revisor %}{{ firmas.revisor }}<br>{% endif %}Contador o revisor</div></td>
+</tr></table>
+{% endif %}
+{% endfor %}
+{% endblock %}

@@ -9,6 +9,8 @@ SECUENCIAS_INICIALES = {
     "ACT": ("Actividades económicas", 3),
     "MA": ("Movimientos de actividades", 6),
     "CJ": ("Movimientos de caja y transferencias", 6),
+    "CB": ("Conciliaciones bancarias", 4),
+    "LQ": ("Liquidaciones de afiliados", 4),
     "DIST": ("Distribuciones de ganancias", 3),
     "PG": ("Pagos y capitalizaciones de ganancias", 6),
 }

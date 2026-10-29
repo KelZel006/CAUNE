@@ -1,0 +1,12 @@
+{% extends "base.html" %}{% load caune %}
+{% block titulo %}Anular {{ c.numero }}{% endblock %}
+{% block encabezado %}Anular conciliación {{ c.numero }}{% endblock %}
+{% block contenido %}
+<div class="card" style="max-width:760px">
+  <div class="aviso-anulado">Conciliación de {{ c.cuenta.nombre }} al {{ c.fecha_corte|fecha }} ({{ c.get_estado_display|lower }}). Sus partidas volverán a quedar pendientes de conciliar; el registro se conserva.</div>
+  <form method="post" novalidate>{% csrf_token %}
+    {% include "partials/campos.html" %}
+    <div class="form-pie"><a class="btn" href="{% url 'caja:conciliacion' c.pk %}">Cancelar</a><button class="btn peligro" type="submit">Anular</button></div>
+  </form>
+</div>
+{% endblock %}

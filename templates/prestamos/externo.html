@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block titulo %}Prestatario de {{ p.numero }}{% endblock %}
+{% block encabezado %}Datos del prestatario externo · {{ p.numero }}{% endblock %}
+{% block contenido %}
+<div class="card" style="max-width:760px">
+  <p class="nota">Corrija los datos del prestatario. El cambio queda en auditoría con su motivo{% if otros %} y se aplica también a sus otros préstamos: {% for o in otros %}{{ o.numero }}{% if not forloop.last %}, {% endif %}{% endfor %}{% endif %}.</p>
+  <form method="post" novalidate>{% csrf_token %}
+    {% include "partials/campos.html" %}
+    <div class="form-pie"><a class="btn" href="{% url 'prestamos:detalle' p.pk %}">Cancelar</a><button class="btn primario" type="submit">Guardar</button></div>
+  </form>
+</div>
+{% endblock %}

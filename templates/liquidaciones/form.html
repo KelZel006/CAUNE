@@ -1,0 +1,22 @@
+{% extends "base.html" %}{% load caune %}
+{% block titulo %}Liquidar {{ afiliado.codigo }}{% endblock %}
+{% block encabezado %}Liquidar y dar de baja · {{ afiliado.codigo }} · {{ afiliado.nombre_completo }}{% endblock %}
+{% block contenido %}
+<div class="card" style="max-width:900px">
+  <p class="nota">Cálculo a hoy. Al confirmar queda <strong>por aprobar</strong>: otra persona la aprueba y en ese momento se le salda lo que debe, se le entrega lo suyo y queda dado de baja.</p>
+  {% if c.bloqueos %}<div class="alerta error" style="margin-bottom:1rem"><strong>Todavía no se puede liquidar:</strong><ul style="margin:.4rem 0 0">{% for b in c.bloqueos %}<li>{{ b }}</li>{% endfor %}</ul></div>{% endif %}
+  {% if c.avisos %}<div class="alerta warning" style="margin-bottom:1rem"><ul style="margin:0">{% for a in c.avisos %}<li>{{ a }}</li>{% endfor %}</ul></div>{% endif %}
+  {% include "liquidaciones/_calculo.html" %}
+  {% if c.avalados %}
+  <div class="nota" style="margin-top:1rem">
+    <strong>Préstamos de terceros que avala</strong> (no incluidos arriba):
+    <ul style="margin:.35rem 0">{% for p in c.avalados %}<li>{{ p.numero }} · {{ p.prestatario }}: debe {{ p.total|lempiras }}</li>{% endfor %}</ul>
+    Si marca «Descontar los préstamos de terceros que avala», el neto a entregar sería <strong>{{ c_descontando.neto|lempiras }}</strong> en lugar de {{ c.neto|lempiras }}{% if c_descontando.bloqueos and not c.bloqueos %} <span class="perdida">y no se podría liquidar: sus deudas superarían sus haberes</span>{% endif %}.
+  </div>
+  {% endif %}
+  <form method="post" novalidate style="margin-top:1.2rem">{% csrf_token %}
+    {% include "partials/campos.html" %}
+    <div class="form-pie"><a class="btn" href="{% url 'afiliados:detalle' afiliado.pk %}">Cancelar</a><button class="btn primario" type="submit">Guardar cálculo para aprobación</button></div>
+  </form>
+</div>
+{% endblock %}

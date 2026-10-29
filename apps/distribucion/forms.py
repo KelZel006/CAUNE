@@ -54,3 +54,15 @@ class EntregaForm(forms.Form):
 
 class MotivoForm(forms.Form):
     motivo = forms.CharField(label="Motivo", min_length=10, widget=forms.Textarea(attrs={"rows": 3}))
+
+
+class FiltroGananciasForm(forms.Form):
+    desde = forms.DateField(required=False, widget=FECHA, help_text="Vacío: desde siempre.")
+    hasta = forms.DateField(required=False, widget=FECHA, help_text="Vacío: hasta hoy.")
+    borradores = forms.BooleanField(label="Incluir distribuciones en borrador", required=False)
+
+    def clean(self):
+        datos = super().clean()
+        if datos.get("desde") and datos.get("hasta") and datos["desde"] > datos["hasta"]:
+            raise forms.ValidationError("La fecha inicial no puede ser posterior a la final.")
+        return datos

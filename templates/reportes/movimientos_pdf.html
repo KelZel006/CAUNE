@@ -1,18 +1,22 @@
 {% extends "pdf/base_pdf.html" %}{% load caune %}
 {% block orientacion %}landscape{% endblock %}
+{% block tipo_documento %}Reporte de operaciones{% endblock %}
 {% block titulo %}Aportaciones y depósitos{% endblock %}
 {% block contenido %}
-<table style="margin-bottom:8px"><tr>
-  <td>Neto aportaciones: <b>{{ neto.aportaciones|lempiras }}</b></td>
-  <td>Neto depósitos: <b>{{ neto.depositos|lempiras }}</b></td>
-  <td>Anuladas (no suman): <b>{{ anulados.n }}</b> · {{ anulados.total|lempiras }}</td>
+<table class="kpi" style="margin-bottom:8px"><tr>
+  <td class="destacado"><div class="etq">NETO APORTACIONES</div><div class="valor">{{ neto.aportaciones|lempiras }}</div></td>
+  <td><div class="etq">NETO DEPÓSITOS</div><div class="valor">{{ neto.depositos|lempiras }}</div></td>
+  <td><div class="etq">OPERACIONES</div><div class="valor">{{ movimientos|length }}</div></td>
+  <td><div class="etq">ANULADAS (NO SUMAN)</div><div class="valor">{{ anulados.n }} · {{ anulados.total|default:0|lempiras }}</div></td>
 </tr></table>
-<table style="margin-bottom:10px">
+<p class="seccion">Resumen por tipo</p>
+<table style="margin-bottom:10px;width:60%">
   <thead><tr><th>Tipo</th><th class="num">Operaciones</th><th class="num">Total</th></tr></thead>
   <tbody>{% for r in resumen %}<tr><td>{{ r.tipo__nombre }}</td><td class="num">{{ r.cantidad }}</td><td class="num">{{ r.total|lempiras }}</td></tr>{% endfor %}</tbody>
 </table>
+<p class="seccion">Detalle de operaciones</p>
 <table>
-  <thead><tr><th>Operación</th><th>Fecha</th><th>Afiliado</th><th>Tipo</th><th>Método</th><th>Caja/cuenta</th><th>Ref.</th><th class="num">Monto</th><th>Estado</th></tr></thead>
-  <tbody>{% for m in movimientos %}<tr class="{% if m.estado == 'ANULADO' %}anulado{% endif %}"><td>{{ m.numero_operacion }}</td><td>{{ m.fecha|fecha }}</td><td>{{ m.afiliado.codigo }} · {{ m.afiliado.nombre_completo }}</td><td>{{ m.tipo.nombre }}</td><td>{{ m.get_metodo_pago_display }}</td><td>{{ m.cuenta_fondo.nombre }}</td><td>{{ m.referencia }}</td><td class="num">{{ m.monto_con_signo|lempiras }}</td><td>{{ m.get_estado_display }}</td></tr>{% endfor %}</tbody>
+  <thead><tr><th style="width:9%">Operación</th><th style="width:8%">Fecha</th><th style="width:25%">Afiliado</th><th style="width:15%">Tipo</th><th style="width:10%">Método</th><th style="width:11%">Caja/cuenta</th><th style="width:7%">Ref.</th><th class="num">Monto</th><th>Estado</th></tr></thead>
+  <tbody>{% for m in movimientos %}<tr class="{% if m.estado == 'ANULADO' %}anulado{% else %}{% cycle 'impar' 'par' %}{% endif %}"><td>{{ m.numero_operacion }}</td><td>{{ m.fecha|fecha }}</td><td>{{ m.afiliado.codigo }} · {{ m.afiliado.nombre_completo }}</td><td>{{ m.tipo.nombre }}</td><td>{{ m.get_metodo_pago_display }}</td><td>{{ m.cuenta_fondo.nombre }}</td><td>{{ m.referencia }}</td><td class="num">{{ m.monto_con_signo|lempiras }}</td><td>{{ m.get_estado_display }}</td></tr>{% endfor %}</tbody>
 </table>
 {% endblock %}

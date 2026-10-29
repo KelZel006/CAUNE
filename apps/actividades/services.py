@@ -12,6 +12,7 @@ from django.utils import timezone
 from apps.aportaciones.services import _validar_monto
 from apps.core import auditoria, parametros
 from apps.core.dinero import CERO, redondear
+from apps.core.models import CuentaFondo
 from apps.core.secuencias import siguiente_numero
 from apps.prestamos.services import _validar_cuenta_metodo
 
@@ -172,6 +173,10 @@ def registrar_movimiento(*, actividad, tipo, fecha, concepto, monto, metodo_pago
                 raise ValidationError({"subactividad": "La subactividad no pertenece a esta actividad."})
             if not subactividad.activa:
                 raise ValidationError({"subactividad": "La subactividad está inactiva."})
+        if tipo == MovimientoActividad.Tipo.GASTO:
+            from apps.caja.services import validar_saldo_disponible
+            CuentaFondo.objects.select_for_update().get(pk=cuenta_fondo.pk)
+            validar_saldo_disponible(cuenta_fondo, fecha, monto)
         try:
             with transaction.atomic():
                 mov = MovimientoActividad.objects.create(
@@ -204,6 +209,9 @@ def anular_movimiento(mov, *, usuario, motivo):
         raise ValidationError("El registro ya está anulado.")
     if parametros.obtener("movimientos.anulacion_requiere_otro_usuario") and mov.registrado_por_id == usuario.pk:
         raise ValidationError("La anulación debe autorizarla un usuario distinto al que registró la operación.")
+    if mov.tipo == MovimientoActividad.Tipo.INGRESO:
+        from apps.caja.services import validar_saldo_disponible
+        validar_saldo_disponible(mov.cuenta_fondo, mov.fecha, CERO, excluir={mov.numero})
     antes = auditoria.instantanea(mov)
     mov.estado = MovimientoActividad.Estado.ANULADO
     mov.anulado_por = usuario

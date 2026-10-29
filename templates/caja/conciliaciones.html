@@ -1,0 +1,18 @@
+{% extends "base.html" %}{% load caune %}
+{% block titulo %}Conciliación bancaria{% endblock %}
+{% block encabezado %}Conciliación bancaria{% endblock %}
+{% block contenido %}
+<div class="acciones no-imprimir" style="margin-bottom:1rem">
+  <a class="btn" href="{% url 'caja:indice' %}">{% icono "volver" %}Caja y bancos</a>
+  {% if perms.caja.add_conciliacionbancaria %}<a class="btn primario" href="{% url 'caja:conciliacion_crear' %}">{% icono "mas" %}Nueva conciliación</a>{% endif %}
+</div>
+<div class="card">
+  <p class="muted small" style="margin-top:0">Compare el libro de cada cuenta bancaria con el estado de cuenta del banco. Marque las operaciones que el banco ya refleja; las demás quedan como partidas en tránsito. Solo se cierra cuando cuadra.</p>
+  <div class="tabla-wrap"><table class="tabla">
+    <thead><tr><th>Número</th><th>Cuenta</th><th>Corte</th><th class="num">Saldo del banco</th><th class="num">Saldo de libros</th><th>Estado</th><th>Registró</th></tr></thead>
+    <tbody>{% for c in object_list %}<tr class="{% if c.estado == 'ANULADA' %}anulado{% endif %}"><td class="sin-tachar"><a href="{% url 'caja:conciliacion' c.pk %}">{{ c.numero }}</a></td><td>{{ c.cuenta.nombre }}</td><td>{{ c.fecha_corte|fecha }}</td><td class="num">{{ c.saldo_banco|lempiras }}</td><td class="num">{% if c.saldo_libros is not None %}{{ c.saldo_libros|lempiras }}{% endif %}</td>
+      <td class="sin-tachar">{% if c.estado == 'CERRADA' %}<span class="badge ok">Cerrada</span>{% elif c.estado == 'ANULADA' %}<span class="badge mal">Anulada</span>{% else %}<span class="badge off">En proceso</span>{% endif %}</td><td class="small">{{ c.registrado_por.get_full_name|default:c.registrado_por.username }}</td></tr>
+    {% empty %}<tr><td colspan="7" class="vacio">Aún no hay conciliaciones bancarias.</td></tr>{% endfor %}</tbody>
+  </table></div>
+</div>
+{% endblock %}

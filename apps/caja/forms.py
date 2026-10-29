@@ -72,3 +72,11 @@ class FiltroLibroForm(forms.Form):
         if datos.get("desde") and datos.get("hasta") and datos["desde"] > datos["hasta"]:
             raise forms.ValidationError("La fecha inicial no puede ser posterior a la final.")
         return datos
+
+
+class ConciliacionForm(forms.Form):
+    cuenta = forms.ModelChoiceField(label="Cuenta bancaria",
+                                    queryset=CuentaFondo.objects.filter(tipo=CuentaFondo.Tipo.BANCO).order_by("nombre"))
+    fecha_corte = forms.DateField(label="Fecha de corte del estado del banco", widget=FECHA)
+    saldo_banco = forms.DecimalField(label="Saldo según el estado del banco", max_digits=14, decimal_places=2)
+    observaciones = forms.CharField(required=False, widget=forms.Textarea(attrs={"rows": 2}))

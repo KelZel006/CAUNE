@@ -1,12 +1,14 @@
 {% extends "pdf/base_pdf.html" %}{% load caune %}
 {% block orientacion %}landscape{% endblock %}
+{% block titulo_html %}{{ titulo }}{% endblock %}
+{% block tipo_documento %}Reporte{% endblock %}
 {% block titulo %}{{ titulo }}{% endblock %}
+{% block subtitulo_bloque %}{% if subtitulo %}<p class="doc-subtitulo">{{ subtitulo }}</p>{% endif %}{% endblock %}
 {% block contenido %}
-{% if subtitulo %}<p class="muted">{{ subtitulo }}</p>{% endif %}
-{% if resumen %}<table style="margin-bottom:8px"><tr>{% for etiqueta, valor in resumen %}<td>{{ etiqueta }}: <b>{{ valor|celda }}</b></td>{% endfor %}</tr></table>{% endif %}
-<table>
-  <thead><tr>{% for e in encabezados %}<th{% if forloop.counter0 in columnas_monto %} class="num"{% endif %}>{{ e }}</th>{% endfor %}</tr></thead>
-  <tbody>{% for fila in filas %}<tr>{% for v in fila.valores %}<td{% if v|es_numero %} class="num"{% endif %}>{{ v|celda }}</td>{% endfor %}</tr>{% endfor %}</tbody>
+{% if resumen %}{% include "pdf/_kpis.html" %}{% endif %}
+<table repeat="1" style="font-size:8pt">
+  <thead><tr>{% for e, ancho in columnas_pdf %}<th{% if forloop.counter0 in columnas_monto %} class="num"{% endif %} style="width:{{ ancho|stringformat:".1f" }}%">{{ e }}</th>{% endfor %}</tr></thead>
+  <tbody>{% for fila in filas %}<tr class="{% cycle 'impar' 'par' %}">{% for v in fila.valores %}<td{% if v|es_numero %} class="num"{% endif %}>{{ v|celda }}</td>{% endfor %}</tr>{% endfor %}</tbody>
   {% if totales %}<tfoot><tr>{% for v in totales %}<td{% if v|es_numero %} class="num"{% endif %}>{{ v|celda }}</td>{% endfor %}</tr></tfoot>{% endif %}
 </table>
 {% if nota %}<p class="muted">{{ nota }}</p>{% endif %}

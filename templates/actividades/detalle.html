@@ -22,7 +22,7 @@
     <div class="card-head con-filete"><h2>Ingresos y gastos</h2><span class="small muted">Últimos 50 · {% if object.activa %}<span class="badge ok">Activa</span>{% else %}<span class="badge off">Cerrada</span>{% endif %}</span></div>
     <div class="tabla-wrap"><table class="tabla">
       <thead><tr><th>Número</th><th>Fecha</th><th>Concepto</th><th>Subactividad</th><th class="num">Monto</th><th></th></tr></thead>
-      <tbody>{% for m in movimientos %}<tr class="{% if m.estado == 'ANULADO' %}anulado{% endif %}"><td class="sin-tachar nowrap">{{ m.numero }}</td><td>{{ m.fecha|fecha }}</td>
+      <tbody>{% for m in movimientos %}<tr class="{% if m.estado == 'ANULADO' %}anulado{% endif %}"><td class="sin-tachar nowrap"><a href="{% url 'actividades:comprobante' m.pk %}" target="_blank" title="Comprobante PDF">{{ m.numero }}</a></td><td>{{ m.fecha|fecha }}</td>
         <td><span class="tipo {% if m.tipo == 'INGRESO' %}tipo-aportacion{% else %}tipo-deposito{% endif %}">{{ m.concepto }}</span></td><td class="small">{{ m.subactividad.nombre|default:"General" }}</td>
         <td class="num {% if m.tipo == 'GASTO' %}perdida{% endif %}">{{ m.monto_con_signo|lempiras }}</td>
         <td class="sin-tachar">{% if m.estado == 'ANULADO' %}<span class="badge mal">Anulado</span>{% elif perms.actividades.anular_movimientoactividad %}<a class="btn sm" href="{% url 'actividades:anular' m.pk %}">Anular</a>{% endif %}</td></tr>

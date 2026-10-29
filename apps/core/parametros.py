@@ -18,6 +18,12 @@ DEFINICIONES = {
     "coop.direccion": dict(nombre="Dirección", tipo=T.TEXTO, grupo=G.GENERAL, valor=""),
     "coop.telefono": dict(nombre="Teléfono", tipo=T.TEXTO, grupo=G.GENERAL, valor=""),
     "coop.correo": dict(nombre="Correo electrónico", tipo=T.TEXTO, grupo=G.GENERAL, valor=""),
+    "coop.firma_presidente": dict(nombre="Nombre del presidente (firma de estados financieros)", tipo=T.TEXTO,
+                                  grupo=G.GENERAL, valor=""),
+    "coop.firma_tesorero": dict(nombre="Nombre del tesorero (firma de estados financieros)", tipo=T.TEXTO,
+                                grupo=G.GENERAL, valor=""),
+    "coop.firma_revisor": dict(nombre="Nombre del contador o revisor (firma de estados financieros)", tipo=T.TEXTO,
+                               grupo=G.GENERAL, valor=""),
     "afiliados.permitir_movimientos_inactivos": dict(
         nombre="Permitir movimientos a afiliados inactivos", tipo=T.BOOLEANO, grupo=G.OPERACION,
         valor="false", afecta_calculos=True,
@@ -29,6 +35,11 @@ DEFINICIONES = {
         valor="false", afecta_calculos=True,
         descripcion="Decisión A2: por defecto las aportaciones son capital no retirable. "
                     "Solo los depósitos reembolsables admiten retiros.",
+    ),
+    "afiliados.liquidacion_requiere_otro_usuario": dict(
+        nombre="La liquidación de un afiliado la aprueba un usuario distinto al que la calculó", tipo=T.BOOLEANO,
+        grupo=G.OPERACION, valor="true", afecta_calculos=True,
+        descripcion="Control de doble persona para el retiro de afiliados (devolución de aportaciones y depósitos).",
     ),
     "movimientos.anulacion_requiere_otro_usuario": dict(
         nombre="La anulación debe hacerla un usuario distinto al que registró", tipo=T.BOOLEANO,

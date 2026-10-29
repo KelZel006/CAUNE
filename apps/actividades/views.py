@@ -225,3 +225,15 @@ class IncluirAfiliadoView(PermisoMixin, FormView):
             return self.form_invalid(form)
         messages.success(self.request, f"{self.exclusion.afiliado.codigo} vuelve a participar en las ganancias.")
         return redirect("actividades:detalle", pk=self.exclusion.actividad_id)
+
+
+class ComprobanteMovimientoView(PermisoMixin, DetailView):
+    """Comprobante de ingreso o gasto de una actividad (PDF con original y copia)."""
+    permission_required = "actividades.view_movimientoactividad"
+    queryset = MovimientoActividad.objects.select_related("actividad", "subactividad", "cuenta_fondo",
+                                                          "registrado_por", "anulado_por")
+
+    def get(self, request, *args, **kwargs):
+        from apps.core.exportar import respuesta_pdf
+        mov = self.get_object()
+        return respuesta_pdf("actividades/comprobante_pdf.html", {"m": mov}, f"comprobante-{mov.numero}", request)

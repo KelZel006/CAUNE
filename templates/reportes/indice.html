@@ -24,6 +24,7 @@
   <a class="card" href="{% url 'reportes:prestamos' %}">{% icono "prestamos" %}<div><h3>4. Préstamos otorgados</h3><p>Por período, tipo de prestatario y estado, con saldos.</p></div></a>
   {% if perms.prestamos.view_pagoprestamo %}<a class="card" href="{% url 'reportes:pagos' %}">{% icono "recibo" %}<div><h3>6. Pagos recibidos</h3><p>Distribución de cada pago entre capital e intereses.</p></div></a>{% endif %}
   <a class="card" href="{% url 'reportes:saldos' %}">{% icono "cuentas" %}<div><h3>7. Saldos pendientes</h3><p>Capital, intereses pendientes y próximo vencimiento.</p></div></a>
+  <a class="card" href="{% url 'reportes:cartera' %}">{% icono "prestamos" %}<div><h3>22. Antigüedad de la cartera</h3><p>Préstamos por días de atraso e índice de morosidad.</p></div></a>
 </div>
 <div class="card">
   <h2>5. Cuadro de amortización</h2>
@@ -61,6 +62,29 @@
   {% if perms.caja.view_movimientocaja %}<a class="card" href="{% url 'reportes:libro_caja' %}">{% icono "caja" %}<div><h3>12. Libro de caja y bancos</h3><p>Entradas, salidas y saldo por caja o cuenta.</p></div></a>
   <a class="card" href="{% url 'reportes:flujo' %}">{% icono "movimientos" %}<div><h3>13. Flujo de efectivo</h3><p>De dónde vino y a dónde fue el dinero en un período.</p></div></a>{% endif %}
   {% if perms.core.ver_dashboard_financiero %}<a class="card" href="{% url 'reportes:resumen_financiero' %}">{% icono "reportes" %}<div><h3>14. Resumen financiero</h3><p>Recursos de CAUNE, a quién pertenecen y verificación del cuadre.</p></div></a>{% endif %}
+  {% if perms.caja.view_movimientocaja %}<a class="card" href="{% url 'reportes:caja_cuentas' %}">{% icono "cuentas" %}<div><h3>20. Saldos por caja y cuenta</h3><p>Saldo inicial, entradas, salidas y saldo final de cada caja y cuenta bancaria.</p></div></a>
+  <a class="card" href="{% url 'reportes:caja_diaria' %}">{% icono "caja" %}<div><h3>21. Resumen diario de caja</h3><p>Entradas, salidas y saldo al cierre de cada día.</p></div></a>{% endif %}
 </div>
 {% endif %}
+{% if perms.core.ver_dashboard_financiero %}
+<h2>Estados financieros</h2>
+<div class="card">
+  <h2>Estados financieros completos</h2>
+  <p class="muted small" style="margin-top:0">Balance general, estado de resultados, cambios en el patrimonio, flujo de efectivo e indicadores en un solo documento, con espacio para firmas.</p>
+  <form method="get" action="{% url 'reportes:estados_financieros' %}" class="filtros" style="margin:0">
+    <div class="campo"><label for="ef-desde">Desde</label><input id="ef-desde" type="date" name="desde"></div>
+    <div class="campo"><label for="ef-hasta">Hasta (fecha de corte)</label><input id="ef-hasta" type="date" name="hasta"></div>
+    <div class="campo"><label for="ef-f">Formato</label><select id="ef-f" name="formato"><option value="">En pantalla</option><option value="pdf">PDF</option><option value="xlsx">Excel</option></select></div>
+    <div class="acciones"><button class="btn primario" type="submit">Generar</button></div>
+  </form>
+</div>
+<div class="grid-config" style="margin-bottom:1.35rem">
+  <a class="card" href="{% url 'reportes:balance' %}">{% icono "reportes" %}<div><h3>15. Balance general</h3><p>Activo, pasivo y patrimonio a una fecha, con comparación y verificación del cuadre.</p></div></a>
+  <a class="card" href="{% url 'reportes:estado_resultados' %}">{% icono "ganancias" %}<div><h3>16. Estado de resultados</h3><p>Ingresos, gastos y utilidad neta del período, comparable con el año anterior.</p></div></a>
+  <a class="card" href="{% url 'reportes:patrimonio' %}">{% icono "afiliados" %}<div><h3>17. Cambios en el patrimonio</h3><p>Aportaciones, reserva, utilidades y distribuciones del período.</p></div></a>
+  <a class="card" href="{% url 'reportes:flujo_clasificado' %}">{% icono "movimientos" %}<div><h3>18. Estado de flujo de efectivo</h3><p>Operación, cartera de préstamos y financiamiento (método directo).</p></div></a>
+  <a class="card" href="{% url 'reportes:indicadores' %}">{% icono "reportes" %}<div><h3>19. Indicadores financieros</h3><p>Liquidez, colocación, morosidad, capitalización y rentabilidad.</p></div></a>
+</div>
+{% endif %}
+
 {% endblock %}

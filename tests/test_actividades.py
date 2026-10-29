@@ -15,9 +15,12 @@ def actividad(tesorero, hoy):
 
 
 @pytest.fixture
-def mov_act(tesorero, caja, hoy):
+def mov_act(tesorero, caja, hoy, fondear):
     def registrar(actividad, tipo, monto, subactividad=None, concepto="Concepto de prueba", usuario=None, **extra):
-        m, _ = acs.registrar_movimiento(actividad=actividad, tipo=tipo, fecha=extra.pop("fecha", hoy), concepto=concepto,
+        fecha = extra.pop("fecha", hoy)
+        if tipo == "GASTO":
+            fondear(caja, monto, fecha)
+        m, _ = acs.registrar_movimiento(actividad=actividad, tipo=tipo, fecha=fecha, concepto=concepto,
                                         monto=D(str(monto)), metodo_pago="EFECTIVO", cuenta_fondo=caja,
                                         usuario=usuario or tesorero, subactividad=subactividad, **extra)
         return m

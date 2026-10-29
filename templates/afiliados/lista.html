@@ -10,6 +10,7 @@
     </form>
     <div class="acciones">
       {% if perms.core.ver_reportes %}<a class="btn" href="{% url 'reportes:afiliados' %}">Reporte</a>{% endif %}
+      {% if perms.liquidaciones.view_liquidacion %}<a class="btn" href="{% url 'liquidaciones:lista' %}">Liquidaciones</a>{% endif %}
       {% if perms.afiliados.add_afiliado %}<a class="btn primario" href="{% url 'afiliados:crear' %}">{% icono "mas" %}Nuevo afiliado</a>{% endif %}
     </div>
   </div>

@@ -41,4 +41,23 @@
   </table></div>
   <p class="muted small">Solo se incluyen operaciones confirmadas. Las operaciones anuladas pueden consultarse en el historial de movimientos.</p>
 </div>
+{% if prestamos_ec %}
+<div class="card">
+  <div class="card-head con-filete"><h2>Préstamos</h2><span class="small muted">Pagado en el período y saldo de capital al {{ ec.hasta|fecha }}</span></div>
+  <div class="tabla-wrap"><table class="tabla">
+    <thead><tr><th>Préstamo</th><th>Desembolso</th><th class="num">Monto</th><th class="num">Capital pagado</th><th class="num">Intereses pagados</th><th class="num">Mora pagada</th><th class="num">Saldo de capital</th><th class="num">Por pagar hoy</th><th>Estado</th></tr></thead>
+    <tbody>{% for f in prestamos_ec %}<tr><td><a href="{% url 'prestamos:detalle' f.prestamo.pk %}">{{ f.prestamo.numero }}</a></td><td>{{ f.prestamo.fecha_desembolso|fecha }}</td><td class="num">{{ f.prestamo.monto_aprobado|lempiras }}</td><td class="num">{{ f.capital_pagado|lempiras }}</td><td class="num">{{ f.interes_pagado|lempiras }}</td><td class="num">{{ f.mora_pagada|lempiras }}</td><td class="num"><strong>{{ f.saldo_capital|lempiras }}</strong></td><td class="num">{% if f.pendiente_hoy is not None %}{{ f.pendiente_hoy|lempiras }}{% endif %}</td><td>{{ f.prestamo.get_estado_display }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+</div>
+{% endif %}
+{% if ganancias_ec %}
+<div class="card">
+  <div class="card-head con-filete"><h2>Ganancias recibidas</h2><span class="small muted">Distribuciones aprobadas cuyo período termina en este estado de cuenta</span></div>
+  <div class="tabla-wrap"><table class="tabla">
+    <thead><tr><th>Distribución</th><th>Período</th><th class="num">Ganancia</th><th>Entrega</th><th>Fecha de entrega</th></tr></thead>
+    <tbody>{% for g in ganancias_ec %}<tr><td>{{ g.distribucion.codigo }}</td><td>{{ g.distribucion.fecha_inicio|fecha }} al {{ g.distribucion.fecha_fin|fecha }}</td><td class="num">{{ g.total|lempiras }}</td><td>{% if g.pago %}{{ g.pago.get_forma_display }}{% else %}Pendiente de entregar{% endif %}</td><td>{% if g.pago %}{{ g.pago.fecha|fecha }}{% endif %}</td></tr>{% endfor %}</tbody>
+  </table></div>
+  <p class="muted small">Las ganancias capitalizadas ya aparecen arriba como «Ganancia capitalizada» en sus aportaciones.</p>
+</div>
+{% endif %}
 {% endblock %}

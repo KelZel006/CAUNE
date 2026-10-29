@@ -24,4 +24,34 @@
   </table></div>
   {% include "partials/paginacion.html" %}
 </div>
+
+<div class="card" id="ganancias-afiliados">
+  <div class="card-head con-filete"><h2>Ganancia de actividades y aportaciones por afiliado</h2><span class="small muted">De mayor a menor ganancia</span></div>
+  <form method="get" action="#ganancias-afiliados" class="filtros no-imprimir">
+    <div class="campo"><label for="{{ filtro.desde.id_for_label }}">Desde</label>{{ filtro.desde }}</div>
+    <div class="campo"><label for="{{ filtro.hasta.id_for_label }}">Hasta</label>{{ filtro.hasta }}</div>
+    <div class="campo campo-check"><label>{{ filtro.borradores }} {{ filtro.borradores.label }}</label></div>
+    {% if filtro.non_field_errors %}<div class="errores-form" style="grid-column:1/-1">{{ filtro.non_field_errors|join:" " }}</div>{% endif %}
+    <div class="acciones">
+      <a class="btn" href="{% url 'distribucion:lista' %}#ganancias-afiliados">Desde siempre</a>
+      <a class="btn" href="{% url_exportar 'pdf' %}" target="_blank">{% icono "descargar" %}PDF</a>
+      <a class="btn" href="{% url_exportar 'xlsx' %}">Excel</a>
+      <button class="btn primario" type="submit">Consultar</button>
+    </div>
+  </form>
+  <p class="small muted" style="margin:.2rem 0 .8rem">
+    {% if filtro.is_valid and filtro.cleaned_data.desde %}Del {{ filtro.cleaned_data.desde|fecha }}{% else %}Desde siempre{% endif %}
+    {% if filtro.is_valid and filtro.cleaned_data.hasta %}al {{ filtro.cleaned_data.hasta|fecha }}{% else %}hasta hoy{% endif %}.
+    Ganancia de actividades: lo que le tocó a cada afiliado de los fondos de actividades económicas en las distribuciones cuyo período termina en ese rango (no incluye la utilidad general por intereses).
+    {% if filtro.is_valid and filtro.cleaned_data.borradores %}<strong>Incluye distribuciones en borrador: son cifras provisionales.</strong>{% else %}Solo distribuciones aprobadas o entregadas.{% endif %}
+  </p>
+  {% if not ganancias.ganancia and ganancias.borradores and not filtro.cleaned_data.borradores %}<div class="alerta warning" style="margin-bottom:.8rem">Hay distribuciones calculadas que aún no se aprueban. Marque «Incluir distribuciones en borrador» para ver sus cifras provisionales.</div>{% endif %}
+  <div class="tabla-wrap"><table class="tabla">
+    <thead><tr><th class="num">#</th><th>Afiliado</th><th class="num">Ganancia de actividades</th><th class="num">Total de aportaciones</th></tr></thead>
+    <tbody>{% for f in ganancias.filas %}<tr><td class="num muted">{{ forloop.counter }}</td><td><a href="{% url 'afiliados:detalle' f.afiliado.pk %}">{{ f.afiliado.codigo }}</a> · {{ f.afiliado.nombre_completo }}{% if not f.afiliado.activo %} <span class="badge off">Inactivo</span>{% endif %}</td>
+      <td class="num{% if f.ganancia < 0 %} perdida{% endif %}"><strong>{{ f.ganancia|lempiras }}</strong></td><td class="num">{{ f.aportaciones|lempiras }}</td></tr>
+    {% empty %}<tr><td colspan="4" class="vacio">Sin ganancias ni aportaciones en este rango.</td></tr>{% endfor %}</tbody>
+    {% if ganancias.filas %}<tfoot><tr><td></td><td>Totales · {{ ganancias.filas|length }} afiliado{{ ganancias.filas|length|pluralize }}</td><td class="num">{{ ganancias.ganancia|lempiras }}</td><td class="num">{{ ganancias.aportaciones|lempiras }}</td></tr></tfoot>{% endif %}
+  </table></div>
+</div>
 {% endblock %}

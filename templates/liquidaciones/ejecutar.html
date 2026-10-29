@@ -1,0 +1,13 @@
+{% extends "base.html" %}{% load caune %}
+{% block titulo %}Aprobar {{ l.numero }}{% endblock %}
+{% block encabezado %}Aprobar y ejecutar la liquidación {{ l.numero }}{% endblock %}
+{% block contenido %}
+<div class="card" style="max-width:900px">
+  <p class="nota">Se registrará con fecha de hoy: {% if l.deuda_prestamos %}el pago de sus préstamos por {{ l.deuda_prestamos|lempiras }} (compensado con sus haberes), {% endif %}{% if l.ganancias %}la entrega de sus ganancias pendientes, {% endif %}la devolución de sus depósitos y aportaciones, y su <strong>baja</strong>. Sale de la caja o cuenta un neto de <strong>{{ l.neto|lempiras }}</strong>.</p>
+  {% include "liquidaciones/_calculo.html" with c=l %}
+  <form method="post" novalidate style="margin-top:1.2rem">{% csrf_token %}
+    {% include "partials/campos.html" %}
+    <div class="form-pie"><a class="btn" href="{% url 'liquidaciones:detalle' l.pk %}">Cancelar</a><button class="btn peligro" type="submit">Aprobar, entregar y dar de baja</button></div>
+  </form>
+</div>
+{% endblock %}

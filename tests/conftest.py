@@ -75,7 +75,26 @@ def encargado_actividades(db):
 
 
 @pytest.fixture
-def nuevo_prestamo(tesorero, caja):
+def fondear(tesorero):
+    """Pone en la caja o cuenta el dinero que le falte para una salida (como «Saldo inicial», que no es utilidad).
+
+    Desde la Fase 4 ninguna salida puede dejar una caja en negativo; los datos de prueba deben tener fondos.
+    """
+    from apps.caja import services as cs
+    from apps.caja.models import CategoriaCaja
+
+    def poner(cuenta, monto, fecha):
+        faltante = Decimal(str(monto)) - cs.saldo(cuenta, hasta=fecha)
+        if faltante > 0:
+            metodo = MetodoPago.EFECTIVO if cuenta.tipo == CuentaFondo.Tipo.CAJA else MetodoPago.DEPOSITO_BANCARIO
+            cs.registrar_movimiento(tipo="INGRESO", fecha=fecha, concepto="Fondos de prueba", monto=faltante,
+                                    metodo_pago=metodo, cuenta_fondo=cuenta, referencia="PRUEBA",
+                                    categoria=CategoriaCaja.objects.get(nombre="Saldo inicial"), usuario=tesorero)
+    return poner
+
+
+@pytest.fixture
+def nuevo_prestamo(tesorero, caja, fondear):
     """Aprueba (y opcionalmente desembolsa) un préstamo interno con valores por defecto."""
     from apps.prestamos import services as ps
 
@@ -87,6 +106,7 @@ def nuevo_prestamo(tesorero, caja):
         datos.update(extra)
         p = ps.aprobar_prestamo(**datos)
         if desembolsar:
+            fondear(cuenta or caja, p.monto_aprobado, hoy - timedelta(days=59))
             p = ps.desembolsar(p, usuario=tesorero, fecha=hoy - timedelta(days=59), cuenta=cuenta or caja,
                                metodo_pago="EFECTIVO")
         return p

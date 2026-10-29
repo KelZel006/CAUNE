@@ -1,0 +1,24 @@
+{% extends "pdf/recibo_base.html" %}{% load caune %}
+{% block titulo_html %}Comprobante {{ m.numero }}{% endblock %}
+{% block folio_etiqueta %}COMPROBANTE{% endblock %}
+{% block numero %}{{ m.numero }}{% endblock %}
+{% block fecha %}{{ m.fecha|fecha }}{% endblock %}
+{% block titulo %}{% if m.es_transferencia %}COMPROBANTE DE TRANSFERENCIA{% elif m.tipo == 'INGRESO' %}COMPROBANTE DE INGRESO{% else %}COMPROBANTE DE EGRESO{% endif %}{% endblock %}
+{% block subtitulo %}{% if m.categoria %}{{ m.categoria.nombre }}{% else %}Entre cajas y cuentas de {{ coop.siglas }}{% endif %}{% endblock %}
+{% block destino_original %}ORIGINAL{% endblock %}
+{% block aviso_anulado %}{% if m.estado == 'ANULADO' %}{% include "pdf/_anulado.html" with fecha=m.anulado_en por=m.anulado_por motivo=m.motivo_anulacion %}{% endif %}{% endblock %}
+{% block datos %}
+  <tr><td class="etq">Concepto</td><td><b>{{ m.concepto }}</b></td></tr>
+  {% if m.es_transferencia %}
+  <tr><td class="etq">Sale de</td><td>{{ m.cuenta_fondo }}</td></tr>
+  <tr><td class="etq">Entra en</td><td>{{ m.cuenta_destino }}</td></tr>
+  {% else %}
+  <tr><td class="etq">{% if m.tipo == 'INGRESO' %}Entra en{% else %}Sale de{% endif %}</td><td>{{ m.cuenta_fondo }}</td></tr>
+  {% endif %}
+  <tr><td class="etq">Forma de pago</td><td>{{ m.get_metodo_pago_display }}{% if m.referencia %} · Ref. {{ m.referencia }}{% endif %}</td></tr>
+  {% if m.observacion %}<tr><td class="etq">Observación</td><td>{{ m.observacion }}</td></tr>{% endif %}
+{% endblock %}
+{% block monto_bloque %}{% include "pdf/_monto.html" with monto=m.monto %}{% endblock %}
+{% block sello %}{% if m.estado == 'CONFIRMADO' %}{% include "pdf/_sello.html" %}{% endif %}{% endblock %}
+{% block firma_izquierda %}{% if m.tipo == 'EGRESO' %}Autorizó · {{ m.registrado_por.get_full_name|default:m.registrado_por.username }}{% else %}Entregó{% endif %}{% endblock %}
+{% block firma_derecha %}{% if m.tipo == 'EGRESO' %}Recibió{% else %}Recibió · {{ m.registrado_por.get_full_name|default:m.registrado_por.username }}{% endif %}{% endblock %}

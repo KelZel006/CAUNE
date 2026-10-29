@@ -1,6 +1,8 @@
 {% extends "base.html" %}{% load caune static %}
 {% block titulo %}Recibo {{ object.numero_recibo }}{% endblock %}
 {% block encabezado %}Recibo {{ object.numero_recibo }}{% endblock %}
+{% block clase_body %}imprimir-recibo{% endblock %}
+{% block membrete_impresion %}{% endblock %}
 {% block contenido %}
 <div class="acciones no-imprimir" style="margin-bottom:1rem;justify-content:center">
   <a class="btn" href="{% url 'prestamos:detalle' object.prestamo.pk %}">{% icono "volver" %}Préstamo {{ object.prestamo.numero }}</a>

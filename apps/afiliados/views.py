@@ -147,6 +147,19 @@ class CambiarEstadoView(PermisoMixin, FormView):
         return redirect("afiliados:detalle", pk=self.afiliado.pk)
 
 
+def complementos_estado_cuenta(afiliado, desde, hasta, usuario):
+    """Préstamos y ganancias del afiliado en el período, según lo que el usuario puede consultar."""
+    datos = {}
+    if usuario.has_perm("prestamos.view_prestamo"):
+        from apps.prestamos.services import prestamos_de_afiliado
+        datos["prestamos_ec"] = prestamos_de_afiliado(afiliado, desde, hasta)
+    if usuario.has_perm("distribucion.view_distribucion"):
+        from apps.distribucion.services import ganancias_afiliado
+        datos["ganancias_ec"] = [g for g in ganancias_afiliado(afiliado) if g["distribucion"].fecha_fin <= hasta
+                                 and (desde is None or g["distribucion"].fecha_fin >= desde)]
+    return datos
+
+
 class EstadoCuentaView(PermisoMixin, DetailView):
     permission_required = "afiliados.ver_estado_cuenta"
     model = Afiliado
@@ -159,16 +172,17 @@ class EstadoCuentaView(PermisoMixin, DetailView):
         if self.form.is_valid():
             desde, hasta = self.form.cleaned_data.get("desde"), self.form.cleaned_data.get("hasta")
         self.estado = mov_services.estado_cuenta(self.object, desde, hasta)
+        self.complementos = complementos_estado_cuenta(self.object, self.estado.desde, self.estado.hasta, request.user)
         formato = request.GET.get("formato")
         if formato == "pdf":
-            return respuesta_pdf("afiliados/estado_cuenta_pdf.html", {"ec": self.estado},
+            return respuesta_pdf("afiliados/estado_cuenta_pdf.html", {"ec": self.estado, **self.complementos},
                                  f"estado-cuenta-{self.object.codigo}", request)
         if formato == "xlsx":
             return self._xlsx()
         return self.render_to_response(self.get_context_data(object=self.object))
 
     def get_context_data(self, **kwargs):
-        return super().get_context_data(ec=self.estado, form=self.form, **kwargs)
+        return super().get_context_data(ec=self.estado, form=self.form, **self.complementos, **kwargs)
 
     def _xlsx(self):
         ec = self.estado

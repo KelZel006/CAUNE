@@ -1,0 +1,12 @@
+{% extends "base.html" %}{% load caune %}
+{% block titulo %}Anular {{ l.numero }}{% endblock %}
+{% block encabezado %}Anular la liquidación {{ l.numero }}{% endblock %}
+{% block contenido %}
+<div class="card" style="max-width:760px">
+  <div class="aviso-anulado">{% if l.estado == 'EJECUTADA' %}Se anularán todas sus operaciones (pagos de préstamos, entrega de ganancias y devoluciones) y {{ l.afiliado.codigo }} volverá a estar activo con sus saldos. El registro se conserva.{% else %}La liquidación aún no se ejecutó: solo se descarta el cálculo.{% endif %}</div>
+  <form method="post" novalidate>{% csrf_token %}
+    {% include "partials/campos.html" %}
+    <div class="form-pie"><a class="btn" href="{% url 'liquidaciones:detalle' l.pk %}">Cancelar</a><button class="btn peligro" type="submit">Anular</button></div>
+  </form>
+</div>
+{% endblock %}

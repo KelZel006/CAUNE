@@ -16,7 +16,7 @@ from apps.reportes.views import resumen_financiero
 
 
 @pytest.fixture
-def prestamo_vencido(tesorero, caja, hoy, mov):
+def prestamo_vencido(tesorero, caja, hoy, mov, fondear):
     """L 1,000 a una sola cuota (interés 10.00) que venció hace 30 días. Mora interna: 1 % mensual."""
     def crear(afiliado, tipo="INTERNO", **extra):
         datos = dict(usuario=tesorero, tipo_prestatario=tipo, monto_solicitado="1000", monto_aprobado="1000",
@@ -29,6 +29,7 @@ def prestamo_vencido(tesorero, caja, hoy, mov):
                          afiliado_responsable=afiliado)
         datos.update(extra)
         p = ps.aprobar_prestamo(**datos)
+        fondear(caja, p.monto_aprobado, hoy - timedelta(days=59))
         return ps.desembolsar(p, usuario=tesorero, fecha=hoy - timedelta(days=59), cuenta=caja, metodo_pago="EFECTIVO")
     return crear
 
@@ -51,10 +52,11 @@ def test_mora_por_dias_de_atraso(afiliado, prestamo_vencido):
     assert r.total_pendiente == D("1000.00") + D("10.00") + D("10.00")
 
 
-def test_sin_atraso_no_hay_mora(afiliado, tesorero, caja, hoy):
+def test_sin_atraso_no_hay_mora(afiliado, tesorero, caja, hoy, fondear):
     p = ps.aprobar_prestamo(usuario=tesorero, tipo_prestatario="INTERNO", afiliado=afiliado, monto_solicitado="1000",
                             monto_aprobado="1000", plazo=2, metodo_amortizacion="CUOTA_FIJA", fecha_aprobacion=hoy,
                             fecha_primer_vencimiento=hoy + timedelta(days=30))
+    fondear(caja, p.monto_aprobado, hoy)
     p = ps.desembolsar(p, usuario=tesorero, fecha=hoy, cuenta=caja, metodo_pago="EFECTIVO")
     assert ps.resumen(p).mora_pendiente == 0
     assert ps.resumen(p, hoy + timedelta(days=30)).mora_pendiente == 0  # el día del vencimiento aún no hay mora

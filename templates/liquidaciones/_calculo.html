@@ -1,0 +1,14 @@
+{% load caune %}<div class="tabla-wrap"><table class="tabla">
+  <thead><tr><th>Concepto</th><th>Detalle</th><th class="num">Monto</th></tr></thead>
+  <tbody>
+    <tr><td colspan="3"><strong>Lo que tiene en {{ coop.siglas }} (haberes)</strong></td></tr>
+    <tr><td>Saldo de aportaciones</td><td class="small muted">Se le devuelve completo</td><td class="num">{{ c.aportaciones|lempiras }}</td></tr>
+    <tr><td>Saldo de depósitos</td><td class="small muted">Ahorro reembolsable</td><td class="num">{{ c.depositos|lempiras }}</td></tr>
+    {% for g in c.detalle.ganancias %}<tr><td>Ganancias por entregar</td><td class="small">Distribución {{ g.codigo }} (aprobada)</td><td class="num">{{ g.monto|lempiras }}</td></tr>{% endfor %}
+    <tr class="subtotal"><td colspan="2"><strong>Total haberes</strong></td><td class="num"><strong>{{ c.aportaciones|add_dec:c.depositos|add_dec:c.ganancias|lempiras }}</strong></td></tr>
+    <tr><td colspan="3"><strong>Lo que debe (se descuenta)</strong></td></tr>
+    {% for p in c.detalle.prestamos %}<tr><td>Préstamo {{ p.numero }}{% if p.avalado %}<div class="small muted">De {{ p.prestatario }}, que avala</div>{% endif %}</td><td class="small">Capital {{ p.capital|lempiras }} · intereses {{ p.intereses|lempiras }} · mora {{ p.mora|lempiras }}</td><td class="num perdida">-{{ p.total|lempiras }}</td></tr>
+    {% empty %}<tr><td colspan="2" class="small muted">No tiene préstamos vigentes</td><td class="num">{{ 0|lempiras }}</td></tr>{% endfor %}
+  </tbody>
+  <tfoot><tr><td colspan="2">NETO A ENTREGAR AL AFILIADO</td><td class="num{% if c.neto < 0 %} perdida{% endif %}">{{ c.neto|lempiras }}</td></tr></tfoot>
+</table></div>

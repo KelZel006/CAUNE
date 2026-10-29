@@ -1,0 +1,46 @@
+{% extends "base.html" %}{% load caune %}
+{% block titulo %}Liquidación {{ l.numero }}{% endblock %}
+{% block encabezado %}Liquidación {{ l.numero }} · {{ l.afiliado.codigo }} · {{ l.afiliado.nombre_completo }}{% endblock %}
+{% block contenido %}
+<div class="acciones no-imprimir" style="margin-bottom:1rem">
+  <a class="btn" href="{% url 'liquidaciones:lista' %}">{% icono "volver" %}Liquidaciones</a>
+  <a class="btn" href="{% url 'afiliados:detalle' l.afiliado.pk %}">Ficha del afiliado</a>
+  {% if l.estado == 'CALCULADA' %}
+    {% if perms.liquidaciones.add_liquidacion %}<form method="post" action="{% url 'liquidaciones:recalcular' l.pk %}" style="display:inline-flex;gap:.5rem;align-items:center">{% csrf_token %}{% if hay_avalados %}<select name="descontar_avalados" aria-label="Préstamos de terceros que avala"><option value="0"{% if not l.descontar_avalados %} selected{% endif %}>No descontar préstamos de terceros</option><option value="1"{% if l.descontar_avalados %} selected{% endif %}>Descontar préstamos de terceros</option></select>{% endif %}<button class="btn" type="submit">Recalcular a hoy</button></form>{% endif %}
+    {% if perms.liquidaciones.ejecutar_liquidacion and not bloqueos %}<a class="btn primario" href="{% url 'liquidaciones:ejecutar' l.pk %}">Aprobar y ejecutar</a>{% endif %}
+  {% endif %}
+  {% if l.estado == 'EJECUTADA' %}<a class="btn primario" href="?formato=pdf" target="_blank">{% icono "imprimir" %}Comprobante PDF</a>{% endif %}
+  {% if l.estado != 'ANULADA' and perms.liquidaciones.anular_liquidacion %}<a class="btn peligro" href="{% url 'liquidaciones:anular' l.pk %}">Anular</a>{% endif %}
+</div>
+{% if l.estado == 'ANULADA' %}<div class="aviso-anulado"><strong>Anulada</strong> el {{ l.anulado_en|date:"d/m/Y H:i" }} por {{ l.anulado_por }}. Motivo: {{ l.motivo_anulacion }}</div>{% endif %}
+{% if avisos %}<div class="alerta warning" style="margin-bottom:1rem"><ul style="margin:0">{% for a in avisos %}<li>{{ a }}</li>{% endfor %}</ul></div>{% endif %}
+{% if bloqueos %}<div class="alerta error" style="margin-bottom:1rem"><strong>Todavía no se puede aprobar:</strong><ul style="margin:.4rem 0 0">{% for b in bloqueos %}<li>{{ b }}</li>{% endfor %}</ul></div>{% endif %}
+<div class="kpis">
+  <div class="kpi destacado"><div class="etq">Neto a entregar</div><div class="valor{% if l.neto < 0 %} perdida{% endif %}">{{ l.neto|lempiras }}</div><div class="det">{{ l.get_estado_display }}</div></div>
+  <div class="kpi aportacion"><div class="etq">Haberes</div><div class="valor">{{ l.haberes|lempiras }}</div><div class="det">Aportaciones, depósitos y ganancias</div></div>
+  <div class="kpi deposito"><div class="etq">Deudas</div><div class="valor">{{ l.deuda_prestamos|lempiras }}</div><div class="det">Préstamos vigentes</div></div>
+</div>
+<div class="card">
+  <div class="card-head con-filete"><h2>Cálculo</h2><span class="small muted">Al {{ l.fecha_calculo|fecha }} · calculó {{ l.calculado_por }}</span></div>
+  {% include "liquidaciones/_calculo.html" with c=l %}
+  <dl class="datos" style="margin-top:1rem">
+    <div style="grid-column:1/-1"><dt>Motivo del retiro</dt><dd>{{ l.motivo }}</dd></div>
+    <div><dt>Préstamos de terceros que avala</dt><dd>{% if l.descontar_avalados %}Se descuentan{% else %}No se descuentan{% endif %}</dd></div>
+    {% if l.estado == 'EJECUTADA' or l.ejecutado_por %}<div><dt>Ejecutada</dt><dd>{{ l.fecha|fecha }} por {{ l.ejecutado_por }}</dd></div>
+    <div><dt>Entregado desde</dt><dd>{{ l.cuenta_fondo.nombre }} · {{ l.get_metodo_pago_display }}{% if l.referencia %} · Ref. {{ l.referencia }}{% endif %}</dd></div>{% endif %}
+  </dl>
+</div>
+{% if movimientos or pagos_prestamo or pagos_ganancia %}
+<div class="card">
+  <div class="card-head con-filete"><h2>Operaciones registradas</h2><span class="small muted">Se anulan junto con la liquidación</span></div>
+  <div class="tabla-wrap"><table class="tabla">
+    <thead><tr><th>Número</th><th>Operación</th><th class="num">Monto</th><th>Estado</th></tr></thead>
+    <tbody>
+      {% for p in pagos_prestamo %}<tr class="{% if p.estado == 'ANULADO' %}anulado{% endif %}"><td class="sin-tachar"><a href="{% url 'prestamos:pago_detalle' p.pk %}">{{ p.numero_recibo }}</a></td><td>Pago del préstamo {{ p.prestamo.numero }} (compensación)</td><td class="num">{{ p.total_recibido|lempiras }}</td><td class="sin-tachar">{{ p.get_estado_display }}</td></tr>{% endfor %}
+      {% for p in pagos_ganancia %}<tr class="{% if p.estado == 'ANULADO' %}anulado{% endif %}"><td class="sin-tachar"><a href="{% url 'distribucion:comprobante_pago' p.pk %}" target="_blank">{{ p.numero }}</a></td><td>Entrega de ganancias {{ p.distribucion.codigo }}</td><td class="num">{{ p.monto|lempiras }}</td><td class="sin-tachar">{{ p.get_estado_display }}</td></tr>{% endfor %}
+      {% for m in movimientos %}<tr class="{% if m.estado == 'ANULADO' %}anulado{% endif %}"><td class="sin-tachar"><a href="{% url 'aportaciones:detalle' m.pk %}">{{ m.numero_operacion }}</a></td><td>{{ m.tipo.nombre }}</td><td class="num">{{ m.monto|lempiras }}</td><td class="sin-tachar">{{ m.get_estado_display }}</td></tr>{% endfor %}
+    </tbody>
+  </table></div>
+</div>
+{% endif %}
+{% endblock %}

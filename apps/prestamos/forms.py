@@ -84,6 +84,14 @@ class ResponsableForm(forms.Form):
     motivo = forms.CharField(label="Motivo", min_length=10, widget=forms.Textarea(attrs={"rows": 3}))
 
 
+class PrestatarioExternoForm(forms.Form):
+    nombre_completo = forms.CharField(label="Nombre completo", max_length=200)
+    identidad = forms.CharField(label="Número de identidad", max_length=15, help_text="13 dígitos, sin guiones.")
+    telefono = forms.CharField(label="Teléfono", max_length=20, required=False)
+    direccion = forms.CharField(label="Dirección", required=False, widget=forms.Textarea(attrs={"rows": 2}))
+    motivo = forms.CharField(label="Motivo del cambio", min_length=10, widget=forms.Textarea(attrs={"rows": 3}))
+
+
 class MotivoForm(forms.Form):
     motivo = forms.CharField(label="Motivo", min_length=10, widget=forms.Textarea(attrs={"rows": 3}))
     confirmar = forms.BooleanField(label="Confirmo esta acción; quedará registrada en auditoría.")

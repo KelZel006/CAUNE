@@ -59,7 +59,7 @@
   <div class="card-head con-filete"><h2>Pagos y capitalizaciones</h2></div>
   <div class="tabla-wrap"><table class="tabla">
     <thead><tr><th>Número</th><th>Fecha</th><th>Afiliado</th><th>Forma</th><th>Caja o cuenta</th><th class="num">Monto</th><th>Estado</th></tr></thead>
-    <tbody>{% for p in pagos %}<tr class="{% if p.estado == 'ANULADO' %}anulado{% endif %}"><td class="sin-tachar nowrap">{{ p.numero }}</td><td>{{ p.fecha|fecha }}</td><td>{{ p.afiliado.codigo }} · {{ p.afiliado.nombre_completo }}</td>
+    <tbody>{% for p in pagos %}<tr class="{% if p.estado == 'ANULADO' %}anulado{% endif %}"><td class="sin-tachar nowrap"><a href="{% url 'distribucion:comprobante_pago' p.pk %}" target="_blank" title="Comprobante PDF">{{ p.numero }}</a></td><td>{{ p.fecha|fecha }}</td><td>{{ p.afiliado.codigo }} · {{ p.afiliado.nombre_completo }}</td>
       <td>{{ p.get_forma_display }}{% if p.movimiento_afiliado_id %} · <a href="{% url 'aportaciones:detalle' p.movimiento_afiliado_id %}">ver depósito</a>{% endif %}</td><td class="small">{{ p.cuenta_fondo.nombre }}</td><td class="num">{{ p.monto|lempiras }}</td>
       <td class="sin-tachar">{% if p.estado == 'ANULADO' %}<span class="badge mal">Anulado</span>{% else %}<span class="badge ok">Confirmado</span>{% if perms.distribucion.anular_pagoganancia %} <a class="btn sm" href="{% url 'distribucion:anular_pago' p.pk %}">Anular</a>{% endif %}{% endif %}</td></tr>
     {% endfor %}</tbody>

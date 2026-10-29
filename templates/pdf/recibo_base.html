@@ -1,0 +1,76 @@
+{% extends "pdf/base_pdf.html" %}{% load caune %}
+{% comment %}
+Base de recibos y comprobantes: original y copia en una hoja carta, con línea de corte.
+Bloques: folio_etiqueta, numero, fecha, titulo, subtitulo, aviso_anulado, datos (filas <tr>), monto_bloque, detalle,
+firma_izquierda, firma_derecha, sello (incluya "pdf/_sello.html" solo si la operación está confirmada), nota,
+destino_original y destino_copia.
+{% endcomment %}
+{% block pagina %}
+  @page {
+    size: letter portrait;
+    margin: .8cm 1.5cm 1.3cm 1.5cm;
+    @frame pie { -pdf-frame-content: pie; bottom: .35cm; margin-left: 1.5cm; margin-right: 1.5cm; height: .95cm; }
+  }
+{% endblock %}
+{% block estilos %}
+  .mb-nombre { font-size: 12.5pt; }
+  .mb-siglas { font-size: 7.2pt; }
+  .mb-contacto { font-size: 6.8pt; padding-top: 1px; }
+  .filete-marino { margin-top: 3px; }
+  .seccion { margin: 6px 0 2px 0; font-size: 8.6pt; }
+  .folio td { border: 1.2px solid #13284b; padding: 3px 8px 2px 8px; text-align: center; }
+  .folio .etq { font-size: 6.8pt; color: #ffffff; background-color: #13284b; font-weight: bold; letter-spacing: 1px; }
+  .folio .numero { font-size: 11.5pt; font-weight: bold; color: #13284b; text-align: center; }
+  .folio .fec { font-size: 7.6pt; color: #45526b; }
+  .ejemplar { font-size: 6.8pt; font-weight: bold; color: #b8902c; text-align: center; }
+  .recibo-titulo { text-align: center; font-size: 11.5pt; font-weight: bold; color: #13284b; letter-spacing: 1.5px; margin: 3px 0 0 0; }
+  .recibo-sub { text-align: center; font-size: 7.6pt; color: #6b778d; margin: 0 0 4px 0; }
+  .datos td { border: none; border-bottom: .5px solid #dbe2ec; padding: 3px 6px 2px 6px; font-size: 8.8pt; }
+  .datos td.etq { width: 25%; color: #6b778d; font-size: 7.9pt; }
+  .marco { border: 1px solid #c3cddd; padding: 1px 5px 1px 5px; }
+  .monto td { border: none; vertical-align: middle; }
+  .monto .letras { background-color: #f1f4fa; border-left: 3px solid #c9a13b; padding: 6px 9px 5px 9px; font-size: 8.4pt; }
+  .monto .letras b { color: #13284b; }
+  .monto .cifra { background-color: #13284b; color: #ffffff; text-align: right; font-size: 15pt; font-weight: bold; padding: 5px 10px 4px 10px; width: 34%; }
+  .monto .cifra-etq { font-size: 6.6pt; color: #e9d398; font-weight: bold; }
+  .anulado-aviso { border: 2px solid #b42318; color: #b42318; padding: 4px 9px 3px 9px; margin: 2px 0 6px 0; font-size: 8.2pt; }
+  .anulado-aviso b { font-size: 11pt; letter-spacing: 2px; }
+  .detalle td, .detalle th { font-size: 7.8pt; padding: 2px 5px 1px 5px; }
+  .firmas td { border: none; text-align: center; vertical-align: bottom; font-size: 7.8pt; padding: 0 6px; }
+  .firmas .linea { border-top: 1px solid #15233d; padding-top: 2px; }
+  .nota-recibo { font-size: 6.8pt; color: #6b778d; text-align: center; margin: 4px 0 0 0; }
+  .corte { border-top: 1px dashed #8e98aa; margin: 7px 0 2px 0; height: 1px; }
+  .corte-texto { font-size: 6.6pt; color: #8e98aa; text-align: center; margin: 0; }
+{% endblock %}
+{% block membrete %}{% endblock %}
+{% block encabezado_documento %}{% endblock %}
+{% block contenido %}
+{% for ejemplar in "OC" %}
+<table class="mb"><tr>
+  {% include "pdf/_marca.html" with logo=46 ancho_logo=52 %}
+  <td style="width:160px">
+    <div class="ejemplar">{% if ejemplar == "O" %}{% block destino_original %}ORIGINAL · INTERESADO{% endblock %}{% else %}{% block destino_copia %}COPIA · ARCHIVO {{ coop.siglas }}{% endblock %}{% endif %}</div>
+    <table class="folio" style="width:160px">
+      <tr><td class="etq">{% block folio_etiqueta %}RECIBO{% endblock %}</td></tr>
+      <tr><td class="numero">N.º {% block numero %}{% endblock %}</td></tr>
+      <tr><td class="fec">Fecha: {% block fecha %}{% endblock %}</td></tr>
+    </table>
+  </td>
+</tr></table>
+<div class="filete-marino"></div>
+<div class="filete-oro"></div>
+<p class="recibo-titulo">{% block titulo %}{% endblock %}</p>
+<p class="recibo-sub">{% block subtitulo %}{% endblock %}</p>
+{% block aviso_anulado %}{% endblock %}
+<div class="marco"><table class="datos">{% block datos %}{% endblock %}</table></div>
+{% block monto_bloque %}{% endblock %}
+{% block detalle %}{% endblock %}
+<table class="firmas" style="margin-top:14px"><tr>
+  <td style="width:39%"><div class="linea">{% block firma_izquierda %}Entregó{% endblock %}</div></td>
+  <td style="width:22%">{% block sello %}{% endblock %}</td>
+  <td style="width:39%"><div class="linea">{% block firma_derecha %}Recibió{% endblock %}</div></td>
+</tr></table>
+<p class="nota-recibo">{% block nota %}Constancia de la operación registrada en el sistema de {{ coop.siglas }}. Las correcciones se hacen por anulación con motivo; no es válido con tachaduras ni enmiendas.{% endblock %}</p>
+{% if forloop.first %}<div class="corte"></div><p class="corte-texto">Corte aquí</p><div style="height:4px"></div>{% endif %}
+{% endfor %}
+{% endblock %}

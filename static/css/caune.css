@@ -184,6 +184,12 @@ table.tabla { width: 100%; border-collapse: collapse; font-size: .9rem; }
 .tabla tfoot td { font-weight: 700; background: var(--marino-50); color: var(--marino-900); border-top: 1px solid var(--borde-fuerte); }
 .tabla tr.anulado td { color: var(--tinta-3); text-decoration: line-through; text-decoration-color: rgba(180, 35, 24, .5); }
 .tabla tr.anulado td.sin-tachar { text-decoration: none; }
+/* Estados financieros: secciones, sangrías y totales */
+.estado-financiero tr.seccion td { font-size: .78rem; font-weight: 700; letter-spacing: .04em; color: var(--marino-800); background: var(--marino-50); padding-top: .8rem; }
+.estado-financiero tr.subtotal td { font-weight: 650; color: var(--marino-900); }
+.estado-financiero tr.total td { font-weight: 700; color: var(--marino-900); background: var(--marino-50); border-top: 1px solid var(--borde-fuerte); }
+.estado-financiero td.nivel-1 { padding-left: 1.6rem; }
+.estado-financiero td.nivel-2 { padding-left: 2.6rem; color: var(--tinta-2); }
 .th-orden { color: inherit; text-decoration: none; }
 .th-orden:hover { color: var(--union); }
 .vacio { padding: 2.25rem 1rem; text-align: center; color: var(--tinta-3); }
@@ -208,6 +214,8 @@ input::placeholder, textarea::placeholder { color: #75819a; }
 input:hover, select:hover, textarea:hover { border-color: var(--marino-700); }
 input:focus, select:focus, textarea:focus { outline: none; border-color: var(--union); box-shadow: 0 0 0 3px rgba(31, 111, 209, .18); }
 .campo.con-error input, .campo.con-error select, .campo.con-error textarea { border-color: var(--rojo); background: #fffafa; }
+.campo-check { justify-content: flex-end; padding-bottom: .55rem; }
+.campo-check label { display: flex; align-items: center; gap: .45rem; cursor: pointer; }
 .campo input[type=checkbox], .checks input[type=checkbox] { width: 1.05rem; height: 1.05rem; accent-color: var(--union); margin: .15rem 0 0; }
 .campo.check { flex-direction: row; align-items: center; gap: .55rem; }
 .campo.check label { font-weight: 500; color: var(--tinta); }
@@ -306,11 +314,50 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--u
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
 
+/* ---------- membrete de impresión (solo papel) ---------- */
+.membrete-impresion, .pie-impresion { display: none; }
+
+@page { size: letter; margin: 1.2cm 1.2cm 1.5cm; }
 @media print {
-  .sidebar, .topbar, .no-imprimir, .alertas { display: none !important; }
+  .sidebar, .no-imprimir, .alertas, .backdrop, .menu-btn, .topbar .usuario { display: none !important; }
+  body { background: #fff; font-size: 11.5px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .main { margin: 0; }
   .content { padding: 0; max-width: none; }
-  body { background: #fff; }
-  .card, .recibo { box-shadow: none; border: none; }
-  .tabla-wrap { overflow: visible; }
+
+  .membrete-impresion { display: flex; justify-content: space-between; align-items: center; gap: 1rem;
+    padding-bottom: .55rem; margin-bottom: .2rem; border-bottom: 2px solid var(--marino-900); position: relative; }
+  .membrete-impresion::after { content: ""; position: absolute; left: 0; right: 0; bottom: -5px; border-bottom: 1px solid var(--oro); }
+  .mi-marca { display: flex; align-items: center; gap: .75rem; }
+  .mi-marca img { border-radius: 50%; box-shadow: 0 0 0 2px var(--oro); }
+  .mi-nombre { font-size: 1.32rem; font-weight: 750; color: var(--marino-900); letter-spacing: -0.01em; }
+  .mi-siglas { font-size: .72rem; font-weight: 700; color: #b8902c; letter-spacing: .12em; margin-top: .1rem; }
+  .mi-contacto { font-size: .72rem; color: var(--tinta-2); margin-top: .12rem; }
+  .mi-fecha { font-size: .72rem; color: var(--tinta-2); text-align: right; }
+  .pie-impresion { display: block; position: fixed; left: 0; right: 0; bottom: 0; font-size: .66rem; color: var(--tinta-3);
+    border-top: 1px solid var(--oro); padding-top: .2rem; text-align: center; background: #fff; }
+
+  /* El título de la pantalla pasa a ser el título del documento. */
+  .topbar { position: static; display: block; background: none; border: none; box-shadow: none; padding: .9rem 0 .35rem; min-height: 0; }
+  .topbar h1 { font-size: 1.15rem; color: var(--marino-900); margin: 0; }
+  .imprimir-recibo .topbar { display: none !important; }
+
+  .card, .recibo { box-shadow: none; border: none; padding-left: 0; padding-right: 0; break-inside: avoid-page; }
+  .kpi { box-shadow: none; border: 1px solid var(--borde-fuerte); break-inside: avoid; }
+  .kpi.destacado { background: var(--marino-900) !important; color: #fff; }
+  .tabla-wrap { overflow: visible; margin: 0; padding: 0; }
+  .tabla { font-size: .82rem; }
+  .tabla th { background: var(--marino-900) !important; color: #fff !important; }
+  .tabla thead { display: table-header-group; }
+  .tabla tr { break-inside: avoid; }
+  .tabla td, .tabla th { padding: .32rem .45rem; }
+  .tabla th { white-space: normal; }
+  .tabla { table-layout: auto; width: 100%; }
+  .kpis { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; gap: .5rem; margin-bottom: .8rem; }
+  .kpis .kpi.destacado { grid-column: auto; }
+  .kpi { padding: .55rem .7rem; }
+  .kpi .valor { font-size: 1.05rem; }
+  .cols-2 { display: block; }
+  .tabla a { color: inherit; text-decoration: none; }
+  .filtros { display: none !important; }
+  .card:has(> form.filtros) { display: none !important; }
 }

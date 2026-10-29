@@ -216,6 +216,9 @@ def desembolsar(prestamo, *, usuario, fecha, cuenta, metodo_pago, referencia="")
     _validar_cuenta_metodo(metodo_pago, cuenta, referencia, errores, campo_cuenta="cuenta")
     if errores:
         raise ValidationError(errores)
+    from apps.caja.services import validar_saldo_disponible
+    CuentaFondo.objects.select_for_update().get(pk=cuenta.pk)
+    validar_saldo_disponible(cuenta, fecha, prestamo.monto_aprobado, campo="cuenta")
     antes = auditoria.instantanea(prestamo)
     prestamo.fecha_desembolso = fecha
     prestamo.cuenta_desembolso = cuenta
@@ -385,6 +388,42 @@ def anotar_saldos(queryset):
     )
 
 
+def prestamos_de_afiliado(afiliado, desde=None, hasta=None):
+    """Préstamos del afiliado para su estado de cuenta: lo pagado en el período y el saldo de capital al corte.
+
+    Lo pendiente de intereses y mora solo se informa con corte de hoy (se calcula con todos los pagos registrados).
+    """
+    hasta = hasta or timezone.localdate()
+    filas = []
+    for p in (afiliado.prestamos.filter(fecha_desembolso__isnull=False, fecha_desembolso__lte=hasta)
+              .exclude(estado=Prestamo.Estado.ANULADO).order_by("fecha_desembolso", "id")):
+        pagos = p.pagos.filter(estado=CONFIRMADO, fecha__lte=hasta)
+        capital_al_corte = redondear(AplicacionPago.objects.filter(pago__in=pagos).aggregate(
+            t=Coalesce(Sum("capital"), Value(CERO), output_field=_DEC))["t"])
+        del_periodo = pagos.filter(fecha__gte=desde) if desde else pagos
+        aplicado = AplicacionPago.objects.filter(pago__in=del_periodo).aggregate(
+            capital=Coalesce(Sum("capital"), Value(CERO), output_field=_DEC),
+            interes=Coalesce(Sum("interes"), Value(CERO), output_field=_DEC))
+        mora = redondear(del_periodo.aggregate(t=Coalesce(Sum("mora"), Value(CERO), output_field=_DEC))["t"])
+        fila = {"prestamo": p, "capital_pagado": redondear(aplicado["capital"]),
+                "interes_pagado": redondear(aplicado["interes"]), "mora_pagada": mora,
+                "saldo_capital": p.monto_aprobado - capital_al_corte, "pagos": list(del_periodo.order_by("fecha", "id")),
+                "pendiente_hoy": None}
+        if hasta == timezone.localdate() and p.estado == Prestamo.Estado.VIGENTE:
+            fila["pendiente_hoy"] = resumen(p).total_pendiente
+        filas.append(fila)
+    return filas
+
+
+def saldo_despues_de_pago(pago):
+    """Saldo de capital del préstamo inmediatamente después de este pago (para su recibo, aunque sea antiguo)."""
+    anteriores = (Q(pago__fecha__lt=pago.fecha) | Q(pago__fecha=pago.fecha, pago__id__lte=pago.pk))
+    capital = AplicacionPago.objects.filter(anteriores, pago__prestamo_id=pago.prestamo_id).filter(
+        Q(pago__estado=CONFIRMADO) | Q(pago=pago)).aggregate(
+        t=Coalesce(Sum("capital"), Value(CERO), output_field=_DEC))["t"]
+    return pago.prestamo.monto_aprobado - redondear(capital)
+
+
 def cartera_vigente():
     qs = anotar_saldos(Prestamo.objects.filter(estado=Prestamo.Estado.VIGENTE))
     total = CERO
@@ -540,6 +579,12 @@ def anular_pago(pago, *, usuario, motivo):
     if ultimo.pk != pago.pk:
         raise ValidationError(f"Solo puede anularse el último pago del préstamo ({ultimo.numero_recibo}). "
                               "Anule primero los pagos posteriores.")
+    # El dinero del pago (y de su excedente) deja de estar en la caja: no puede dejarla en negativo.
+    from apps.caja.services import validar_saldo_disponible
+    excluir = {pago.numero_recibo}
+    if pago.movimiento_excedente_id:
+        excluir.add(pago.movimiento_excedente.numero_operacion)
+    validar_saldo_disponible(pago.cuenta_fondo, pago.fecha, CERO, excluir=excluir)
     if pago.movimiento_excedente_id:
         mov_services.anular_movimiento(pago.movimiento_excedente, usuario=usuario, automatico=True,
                                        motivo=f"Anulación del pago {pago.numero_recibo}: {motivo}")
@@ -580,3 +625,40 @@ def cambiar_responsable(prestamo, *, afiliado, usuario, motivo):
                         descripcion=f"Afiliado responsable de {prestamo.numero}: {afiliado.codigo}. Motivo: {motivo}",
                         antes={"afiliado_responsable_id": anterior}, despues={"afiliado_responsable_id": afiliado.pk})
     return prestamo
+
+
+@transaction.atomic
+def actualizar_externo(externo, datos, *, usuario, motivo):
+    """Corrige los datos de un prestatario externo (nombre, identidad, teléfono, dirección), con motivo y auditoría."""
+    if not usuario.has_perm("prestamos.change_prestamo"):
+        raise ValidationError("No tiene permiso para editar prestatarios externos.")
+    motivo = " ".join((motivo or "").split())
+    errores = {}
+    if len(motivo) < 10:
+        errores["motivo"] = "Explique el motivo del cambio (mínimo 10 caracteres)."
+    nombre = " ".join((datos.get("nombre_completo") or "").split())
+    identidad = (datos.get("identidad") or "").replace("-", "").strip()
+    if len(nombre) < 3:
+        errores["nombre_completo"] = "Indique el nombre completo."
+    if not (len(identidad) == 13 and identidad.isdigit()):
+        errores["identidad"] = "La identidad debe tener 13 dígitos."
+    elif PrestatarioExterno.objects.filter(identidad=identidad).exclude(pk=externo.pk).exists():
+        errores["identidad"] = "Ya existe otro prestatario externo con esa identidad."
+    elif Afiliado.objects.filter(identidad=identidad).exists():
+        errores["identidad"] = "Esa identidad pertenece a un afiliado."
+    if errores:
+        raise ValidationError(errores)
+    externo = PrestatarioExterno.objects.select_for_update().get(pk=externo.pk)
+    campos = ("nombre_completo", "identidad", "telefono", "direccion")
+    antes = {c: getattr(externo, c) for c in campos}
+    externo.nombre_completo, externo.identidad = nombre, identidad
+    externo.telefono = (datos.get("telefono") or "").strip()
+    externo.direccion = (datos.get("direccion") or "").strip()
+    despues = {c: getattr(externo, c) for c in campos}
+    if antes == despues:
+        raise ValidationError("No hay cambios que guardar.")
+    externo.save(update_fields=list(campos))
+    auditoria.registrar(auditoria.Accion.MODIFICAR, usuario=usuario, objeto=externo,
+                        descripcion=f"Datos del prestatario externo {externo.nombre_completo}. Motivo: {motivo}",
+                        antes=antes, despues=despues)
+    return externo

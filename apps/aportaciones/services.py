@@ -114,13 +114,16 @@ def _validar_monto(monto):
 
 
 def registrar_movimiento(*, afiliado, tipo, fecha, monto, metodo_pago, cuenta_fondo, usuario,
-                         clave_idempotencia=None, referencia="", observacion="", automatico=False):
+                         clave_idempotencia=None, referencia="", observacion="", automatico=False,
+                         por_liquidacion=False):
     """Registra un movimiento confirmado. Devuelve (movimiento, creado).
 
     Si la misma clave de idempotencia ya fue usada (doble clic, reenvío del formulario),
     devuelve el movimiento existente sin crear otro.
     `automatico=True`: lo genera otra operación ya autorizada (por ejemplo, el excedente de un pago de préstamo),
     así que no se exige el permiso de registrar aportaciones.
+    `por_liquidacion=True`: la devolución de aportaciones de un afiliado que se retira (tipo RAPO); es la única forma
+    de retirar aportaciones aunque la configuración no lo permita.
     """
     if not automatico and not usuario.has_perm("aportaciones.add_movimientoafiliado"):
         raise ValidationError("No tiene permiso para registrar movimientos.")
@@ -163,14 +166,22 @@ def registrar_movimiento(*, afiliado, tipo, fecha, monto, metodo_pago, cuenta_fo
             raise ValidationError({"afiliado": "El afiliado está inactivo; no admite nuevos movimientos."})
         if fecha < afiliado.fecha_ingreso:
             raise ValidationError({"fecha": "La fecha es anterior a la fecha de ingreso del afiliado."})
+        if (tipo.codigo == TIPO_LIQUIDACION) != por_liquidacion:
+            raise ValidationError({"tipo": "La devolución de aportaciones solo se registra con la liquidación del "
+                                           "afiliado."})
         if tipo.es_retiro:
-            if tipo.clase == Clase.APORTACION and not parametros.obtener("movimientos.permitir_retiro_aportaciones"):
+            if (tipo.clase == Clase.APORTACION and not por_liquidacion
+                    and not parametros.obtener("movimientos.permitir_retiro_aportaciones")):
                 raise ValidationError({"tipo": "Las aportaciones no son retirables según la configuración vigente."})
             if _saldo_minimo_diario(afiliado, tipo.clase, adicional=(fecha, -monto)) < 0:
                 disponible = saldos_afiliado(afiliado)[
                     "aportaciones" if tipo.clase == Clase.APORTACION else "depositos"]
                 raise ValidationError({"monto": f"Saldo insuficiente para el retiro (saldo actual: L {disponible:,.2f}, "
                                                 f"sin quedar negativo en ninguna fecha)."})
+            # El dinero sale de una caja o cuenta: tampoco puede dejarla en negativo.
+            from apps.caja.services import validar_saldo_disponible
+            CuentaFondo.objects.select_for_update().get(pk=cuenta_fondo.pk)
+            validar_saldo_disponible(cuenta_fondo, fecha, monto)
         try:
             with transaction.atomic():
                 movimiento = MovimientoAfiliado.objects.create(
@@ -204,7 +215,7 @@ def anular_movimiento(movimiento, *, motivo, usuario, automatico=False):
     if len(motivo) < 10:
         raise ValidationError({"motivo": "Explique el motivo de la anulación (mínimo 10 caracteres)."})
     Afiliado.objects.select_for_update().get(pk=movimiento.afiliado_id)
-    movimiento = MovimientoAfiliado.objects.select_for_update().select_related("tipo").get(pk=movimiento.pk)
+    movimiento = MovimientoAfiliado.objects.select_for_update(of=("self",)).select_related("tipo").get(pk=movimiento.pk)
     if not movimiento.confirmado:
         raise ValidationError("El movimiento ya está anulado.")
     if (parametros.obtener("movimientos.anulacion_requiere_otro_usuario")
@@ -214,6 +225,12 @@ def anular_movimiento(movimiento, *, motivo, usuario, automatico=False):
         if _saldo_minimo_diario(movimiento.afiliado, movimiento.tipo.clase, excluir_pk=movimiento.pk) < 0:
             raise ValidationError("No se puede anular: hay retiros posteriores que dependen de este movimiento. "
                                   "Anule primero esos retiros.")
+        # Anular una entrada quita ese dinero de la caja. Si la anula la operación que la generó (pago de préstamo o
+        # entrega de ganancias), esa operación ya lo verificó o no movió dinero.
+        if not automatico:
+            from apps.caja.services import validar_saldo_disponible
+            validar_saldo_disponible(movimiento.cuenta_fondo, movimiento.fecha, CERO,
+                                     excluir={movimiento.numero_operacion})
     antes = auditoria.instantanea(movimiento)
     movimiento.estado = MovimientoAfiliado.Estado.ANULADO
     movimiento.anulado_por = usuario
@@ -227,7 +244,10 @@ def anular_movimiento(movimiento, *, motivo, usuario, automatico=False):
 
 
 def _operacion_origen(movimiento):
-    """Texto de la operación que generó el movimiento (pago de préstamo o entrega de ganancias), si la hay."""
+    """Texto de la operación que generó el movimiento (pago de préstamo, entrega de ganancias o liquidación)."""
+    liquidacion = movimiento.liquidaciones.first() if movimiento.pk else None
+    if liquidacion is not None:
+        return f"la liquidación {liquidacion.numero}"
     pago = getattr(movimiento, "pago_prestamo_origen", None) if movimiento.pk else None
     if pago is not None:
         return f"el pago {pago.numero_recibo} del préstamo {pago.prestamo.numero}"
@@ -235,6 +255,9 @@ def _operacion_origen(movimiento):
     if entrega is not None:
         return f"la entrega de ganancias {entrega.numero}"
     return ""
+
+
+TIPO_LIQUIDACION = "RAPO"
 
 
 # --------------------------------------------------------------------------- estado de cuenta
@@ -301,6 +324,9 @@ TIPOS_INICIALES = [
     dict(codigo="EXA", nombre="Excedente de préstamo avalado", clase=Clase.DEPOSITO, naturaleza=Naturaleza.ENTRADA,
          participa_distribucion=False,
          descripcion="Lo que un prestatario externo paga de más queda como depósito del afiliado que lo avala."),
+    dict(codigo="RAPO", nombre="Devolución de aportaciones por liquidación", clase=Clase.APORTACION,
+         naturaleza=Naturaleza.SALIDA, participa_distribucion=True,
+         descripcion="Solo la usa la liquidación de un afiliado que se retira. No se registra a mano."),
 ]
 
 

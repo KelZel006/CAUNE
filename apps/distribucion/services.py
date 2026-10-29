@@ -19,6 +19,7 @@ from decimal import ROUND_DOWN, Decimal, localcontext
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.db.models import Sum
 from django.utils import timezone
 
 from apps.actividades import services as act_services
@@ -381,7 +382,8 @@ def resumen(dist):
     for fila in filas.values():
         fila["por_fondo"] = [fila["partes"].get(f.pk) for f in fondos]
         fila["pago"] = pagos.get(fila["afiliado"].pk)
-    lista = sorted(filas.values(), key=lambda x: x["afiliado"].codigo)
+    # De mayor a menor ganancia; a igual ganancia, por código de afiliado.
+    lista = sorted(filas.values(), key=lambda x: (-x["total"], x["afiliado"].codigo))
     total = sum((x["total"] for x in lista), CERO)
     entregado = sum((p.monto for p in pagos.values()), CERO)
     return {
@@ -399,6 +401,36 @@ def resumen_texto(dist):
     r = resumen(dist)
     return {"resultado": str(r["resultado"]), "reserva": str(r["reserva"]), "total": str(r["total"]),
             "afiliados": len(r["filas"])}
+
+
+def ganancias_actividades_por_afiliado(desde=None, hasta=None, incluir_borradores=False):
+    """Por afiliado: lo que le tocó de los fondos de actividades y sus aportaciones netas, de mayor a menor ganancia.
+
+    Una distribución entra al rango según la fecha en que termina su período. Sin fechas, cuenta todo («desde
+    siempre»). Las aportaciones son las del rango (sin `desde`, el saldo acumulado hasta `hasta`). Por defecto solo
+    cuentan las distribuciones aprobadas o entregadas; con `incluir_borradores`, también las calculadas sin aprobar.
+    """
+    estados = [Distribucion.Estado.APROBADA, Distribucion.Estado.APLICADA]
+    if incluir_borradores:
+        estados.append(Distribucion.Estado.CALCULADA)
+    lineas = LineaDistribucion.objects.filter(fondo__tipo=FondoDistribucion.Tipo.ACTIVIDAD,
+                                              fondo__distribucion__estado__in=estados)
+    movimientos = MovimientoAfiliado.objects.confirmados().filter(tipo__clase=TipoMovimiento.Clase.APORTACION)
+    if desde:
+        lineas = lineas.filter(fondo__distribucion__fecha_fin__gte=desde)
+        movimientos = movimientos.filter(fecha__gte=desde)
+    if hasta:
+        lineas = lineas.filter(fondo__distribucion__fecha_fin__lte=hasta)
+        movimientos = movimientos.filter(fecha__lte=hasta)
+    ganancia = {f["afiliado"]: redondear(f["t"]) for f in lineas.values("afiliado").annotate(t=Sum("monto"))}
+    aportado = {f["afiliado"]: redondear(f["t"]) for f in
+                movimientos.values("afiliado").annotate(t=Sum(mov_services._monto_con_signo()))}
+    filas = [{"afiliado": a, "ganancia": ganancia.get(a.pk, CERO), "aportaciones": aportado.get(a.pk, CERO)}
+             for a in Afiliado.objects.filter(pk__in=set(ganancia) | set(aportado))]
+    filas.sort(key=lambda f: (-f["ganancia"], -f["aportaciones"], f["afiliado"].codigo))
+    return {"filas": filas, "ganancia": sum((f["ganancia"] for f in filas), CERO),
+            "aportaciones": sum((f["aportaciones"] for f in filas), CERO),
+            "borradores": Distribucion.objects.filter(estado=Distribucion.Estado.CALCULADA).exists()}
 
 
 def ganancias_afiliado(afiliado):

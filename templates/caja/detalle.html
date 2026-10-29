@@ -4,6 +4,7 @@
 {% block contenido %}
 <div class="acciones no-imprimir" style="margin-bottom:1rem">
   <a class="btn" href="{% url 'caja:indice' %}">{% icono "volver" %}Caja y bancos</a>
+  <a class="btn primario" href="?formato=pdf" target="_blank">{% icono "imprimir" %}Comprobante PDF</a>
   <button class="btn" type="button" onclick="window.print()">{% icono "imprimir" %}Imprimir</button>
   {% if object.confirmado and perms.caja.anular_movimientocaja %}<a class="btn peligro" href="{% url 'caja:anular' object.pk %}">Anular</a>{% endif %}
 </div>

@@ -20,4 +20,13 @@ urlpatterns = [
     path("libro-caja/", views.ReporteLibroCajaView.as_view(), name="libro_caja"),
     path("flujo-efectivo/", views.ReporteFlujoView.as_view(), name="flujo"),
     path("resumen-financiero/", views.ReporteResumenFinancieroView.as_view(), name="resumen_financiero"),
+    path("balance-general/", views.ReporteBalanceView.as_view(), name="balance"),
+    path("estado-resultados/", views.ReporteEstadoResultadosView.as_view(), name="estado_resultados"),
+    path("cambios-patrimonio/", views.ReportePatrimonioView.as_view(), name="patrimonio"),
+    path("estado-flujo-efectivo/", views.ReporteFlujoClasificadoView.as_view(), name="flujo_clasificado"),
+    path("indicadores/", views.ReporteIndicadoresView.as_view(), name="indicadores"),
+    path("estados-financieros/", views.EstadosFinancierosView.as_view(), name="estados_financieros"),
+    path("saldos-caja/", views.ReporteCajaCuentasView.as_view(), name="caja_cuentas"),
+    path("caja-diaria/", views.ReporteCajaDiariaView.as_view(), name="caja_diaria"),
+    path("antiguedad-cartera/", views.ReporteCarteraView.as_view(), name="cartera"),
 ]

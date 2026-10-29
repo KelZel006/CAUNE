@@ -1,0 +1,38 @@
+{% extends "base.html" %}{% load caune %}
+{% block titulo %}Conciliación {{ c.numero }}{% endblock %}
+{% block encabezado %}Conciliación bancaria · {{ c.numero }}{% endblock %}
+{% block contenido %}
+<div class="acciones no-imprimir" style="margin-bottom:1rem">
+  <a class="btn" href="{% url 'caja:conciliaciones' %}">{% icono "volver" %}Conciliaciones</a>
+  <a class="btn" href="?formato=pdf" target="_blank">{% icono "descargar" %}PDF</a>
+  {% if perms.caja.anular_conciliacionbancaria and c.estado != 'ANULADA' %}<a class="btn peligro" href="{% url 'caja:conciliacion_anular' c.pk %}">Anular</a>{% endif %}
+</div>
+{% if c.estado == 'ANULADA' %}<div class="aviso-anulado"><strong>Anulada</strong> el {{ c.anulado_en|date:"d/m/Y H:i" }}. Motivo: {{ c.motivo_anulacion }}</div>{% endif %}
+<div class="kpis">
+  <div class="kpi destacado"><div class="etq">Diferencia</div><div class="valor{% if r.diferencia != 0 %} perdida{% endif %}">{{ r.diferencia|lempiras }}</div><div class="det">{% if r.diferencia == 0 %}Cuadra con el banco{% else %}Libros menos banco ajustado{% endif %}</div></div>
+  <div class="kpi"><div class="etq">Saldo según libros</div><div class="valor">{{ r.saldo_libros|lempiras }}</div><div class="det">{{ c.cuenta.nombre }} al {{ c.fecha_corte|fecha }}</div></div>
+  <div class="kpi deposito"><div class="etq">Saldo según el banco</div><div class="valor">{{ c.saldo_banco|lempiras }}</div><div class="det">Ajustado: {{ r.saldo_banco_ajustado|lempiras }}</div></div>
+  <div class="kpi aportacion"><div class="etq">En tránsito</div><div class="valor">{{ en_transito|length }}</div><div class="det">Entradas {{ r.entradas_transito|lempiras }} · salidas {{ r.salidas_transito|lempiras }}</div></div>
+</div>
+<form method="post" class="card">{% csrf_token %}
+  <div class="card-head con-filete"><h2>Operaciones del libro hasta el {{ c.fecha_corte|fecha }}</h2><span class="small muted">{% if c.editable %}Marque las que aparecen en el estado del banco{% else %}Marcadas: reflejadas por el banco{% endif %}</span></div>
+  {% if c.editable and perms.caja.change_conciliacionbancaria %}
+  <div class="filtros" style="margin:0 0 1rem"><div class="campo"><label for="saldo_banco">Saldo según el estado del banco</label><input id="saldo_banco" name="saldo_banco" type="number" step="0.01" value="{{ c.saldo_banco|stringformat:".2f" }}"></div></div>
+  {% else %}<input type="hidden" name="saldo_banco" value="{{ c.saldo_banco|stringformat:".2f" }}">{% endif %}
+  <div class="tabla-wrap"><table class="tabla">
+    <thead><tr><th>En el banco</th><th>Fecha</th><th>Número</th><th>Detalle</th><th class="num">Entrada</th><th class="num">Salida</th></tr></thead>
+    <tbody>{% for linea, marcada in r.partidas %}<tr>
+      <td><input type="checkbox" name="partidas" value="{{ linea.numero }}" aria-label="{{ linea.numero }} aparece en el banco"{% if marcada %} checked{% endif %}{% if not c.editable or not perms.caja.change_conciliacionbancaria %} disabled{% endif %}></td>
+      <td class="nowrap">{{ linea.fecha|fecha }}</td><td class="nowrap">{% if linea.url %}<a href="{{ linea.url }}">{{ linea.numero }}</a>{% else %}{{ linea.numero }}{% endif %}</td>
+      <td><span class="small muted">{{ linea.origen }}</span><div>{{ linea.descripcion }}</div></td>
+      <td class="num">{% if linea.entrada %}{{ linea.entrada|lempiras }}{% endif %}</td><td class="num perdida">{% if linea.salida %}{{ linea.salida|lempiras }}{% endif %}</td></tr>
+    {% empty %}<tr><td colspan="6" class="vacio">No hay operaciones pendientes de conciliar en esta cuenta.</td></tr>{% endfor %}</tbody>
+  </table></div>
+  <p class="muted small">Si el banco registró algo que no está en el libro (comisiones, intereses, depósitos sin identificar), regístrelo primero en <a href="{% url 'caja:indice' %}">Caja y bancos</a> como egreso o ingreso de esta cuenta. Las operaciones de conciliaciones cerradas anteriores ya no aparecen.</p>
+  {% if c.editable %}<div class="form-pie">
+    {% if perms.caja.change_conciliacionbancaria %}<button class="btn" type="submit" name="accion" value="guardar">Guardar marcas</button>{% endif %}
+    {% if perms.caja.cerrar_conciliacionbancaria %}<button class="btn primario" type="submit" name="accion" value="cerrar">Guardar y cerrar</button>{% endif %}
+  </div>{% endif %}
+</form>
+{% if c.observaciones %}<div class="card"><h2>Observaciones</h2><p>{{ c.observaciones|linebreaksbr }}</p></div>{% endif %}
+{% endblock %}

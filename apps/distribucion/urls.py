@@ -13,4 +13,5 @@ urlpatterns = [
     path("<int:pk>/anular/", views.AnularView.as_view(), name="anular"),
     path("<int:pk>/entregar/", views.EntregarView.as_view(), name="entregar"),
     path("pagos/<int:pk>/anular/", views.AnularPagoView.as_view(), name="anular_pago"),
+    path("pagos/<int:pk>/comprobante/", views.ComprobantePagoView.as_view(), name="comprobante_pago"),
 ]

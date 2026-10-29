@@ -107,10 +107,11 @@ def test_cuadro_queda_inmutable(afiliado, nuevo_prestamo):
 
 # ------------------------------------------------------------------ desembolso y anulación
 
-def test_flujo_de_estados(afiliado, nuevo_prestamo, tesorero, supervisor, caja, hoy):
+def test_flujo_de_estados(afiliado, nuevo_prestamo, tesorero, supervisor, caja, hoy, fondear):
     p = nuevo_prestamo(afiliado, desembolsar=False)
     with pytest.raises(ValidationError):  # no se paga lo que no se ha desembolsado
         pagar(p, 100, tesorero, caja)
+    fondear(caja, p.monto_aprobado, p.fecha_aprobacion)
     p = ps.desembolsar(p, usuario=tesorero, fecha=p.fecha_aprobacion, cuenta=caja, metodo_pago="EFECTIVO")
     assert p.estado == "VIGENTE" and p.desembolsado_por == tesorero
     with pytest.raises(ValidationError):  # ya desembolsado

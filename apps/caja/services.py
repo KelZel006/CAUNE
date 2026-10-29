@@ -50,6 +50,8 @@ class LineaCaja:
     salida: object = CERO
     url: str = ""
     saldo: object = None
+    # Afiliados: clase del tipo (APORTACION / DEPOSITO). Caja: UTILIDAD / NO_UTILIDAD según la categoría.
+    clase: str = ""
 
     @property
     def neto(self):
@@ -84,7 +86,7 @@ def lineas(cuenta=None, desde=None, hasta=None, separar_intereses=False):
         filas.append(LineaCaja(m.fecha, (m.registrado_en, 1, m.pk), RETIROS if retiro else APORTACIONES,
                                m.numero_operacion, f"{m.tipo.nombre} · {m.afiliado.codigo} {m.afiliado.nombre_completo}",
                                m.cuenta_fondo, entrada=CERO if retiro else m.monto, salida=m.monto if retiro else CERO,
-                               url=reverse("aportaciones:detalle", args=[m.pk])))
+                               url=reverse("aportaciones:detalle", args=[m.pk]), clase=m.tipo.clase))
     # Desembolsos de préstamos (un préstamo desembolsado no se anula).
     qs = _filtrar(Prestamo.objects.filter(fecha_desembolso__isnull=False)
                   .exclude(estado=Prestamo.Estado.ANULADO)
@@ -132,7 +134,8 @@ def lineas(cuenta=None, desde=None, hasta=None, separar_intereses=False):
             egreso = m.tipo == MovimientoCaja.Tipo.EGRESO
             filas.append(LineaCaja(m.fecha, (m.registrado_en, 5, m.pk), CAJA_EGRESOS if egreso else CAJA_INGRESOS,
                                    m.numero, f"{m.categoria.nombre} · {m.concepto}", m.cuenta_fondo,
-                                   entrada=CERO if egreso else m.monto, salida=m.monto if egreso else CERO, url=url))
+                                   entrada=CERO if egreso else m.monto, salida=m.monto if egreso else CERO, url=url,
+                                   clase="UTILIDAD" if m.categoria.afecta_utilidades else "NO_UTILIDAD"))
     for m in _filtrar(base.filter(tipo=MovimientoCaja.Tipo.TRANSFERENCIA), "fecha", "cuenta_destino", cuenta, desde,
                       hasta):
         filas.append(LineaCaja(m.fecha, (m.registrado_en, 5, m.pk), TRANSFERENCIAS, m.numero,
@@ -230,16 +233,18 @@ def otros_resultados(desde=None, hasta=None):
 
 # --------------------------------------------------------------------------- control de saldo
 
-def validar_saldo_disponible(cuenta, fecha, monto, excluir_caja=None):
+def validar_saldo_disponible(cuenta, fecha, monto, excluir_caja=None, excluir=(), campo="monto"):
     """Impide que una salida de `monto` en `fecha` deje la cuenta en negativo ese día o cualquier día posterior.
 
-    `excluir_caja` es un MovimientoCaja que se va a anular (deja de contar).
+    `excluir_caja` es un MovimientoCaja que se va a anular; `excluir`, los números de las operaciones de cualquier
+    módulo que se van a anular (dejan de contar). Cada módulo numera con su propio prefijo, así que no se confunden.
     """
     if parametros.obtener("caja.permitir_saldo_negativo"):
         return
+    excluir = set(excluir) | ({excluir_caja.numero} if excluir_caja is not None else set())
     netos = defaultdict(lambda: CERO)
     for f in lineas(cuenta):
-        if excluir_caja is not None and f.numero == excluir_caja.numero:
+        if f.numero in excluir:
             continue
         netos[f.fecha] += f.neto
     netos[fecha] -= monto
@@ -248,12 +253,12 @@ def validar_saldo_disponible(cuenta, fecha, monto, excluir_caja=None):
         acumulado += netos[dia]
         if dia >= fecha and acumulado < 0:
             disponible = saldo(cuenta, hasta=fecha)
-            if excluir_caja is not None:
+            if excluir:
                 raise ValidationError(
                     f"No se puede: {cuenta.nombre} quedaría con saldo negativo el {dia:%d/%m/%Y} "
                     f"(L {acumulado:,.2f}).")
             raise ValidationError(
-                {"monto": f"Saldo insuficiente en {cuenta.nombre}: disponible L {disponible:,.2f} al "
+                {campo: f"Saldo insuficiente en {cuenta.nombre}: disponible L {disponible:,.2f} al "
                           f"{fecha:%d/%m/%Y}" + ("" if dia == fecha else
                                                  f"; además quedaría en negativo el {dia:%d/%m/%Y}") + "."})
 
@@ -332,7 +337,9 @@ def anular_movimiento(mov, *, usuario, motivo):
     motivo = (motivo or "").strip()
     if len(motivo) < 10:
         raise ValidationError({"motivo": "Explique el motivo de la anulación (mínimo 10 caracteres)."})
-    mov = MovimientoCaja.objects.select_for_update().select_related("cuenta_fondo", "cuenta_destino").get(pk=mov.pk)
+    # `of=self`: PostgreSQL no permite FOR UPDATE sobre el lado nulo de un LEFT JOIN (cuenta_destino).
+    mov = (MovimientoCaja.objects.select_for_update(of=("self",)).select_related("cuenta_fondo", "cuenta_destino")
+           .get(pk=mov.pk))
     if not mov.confirmado:
         raise ValidationError("El movimiento ya está anulado.")
     if parametros.obtener("movimientos.anulacion_requiere_otro_usuario") and mov.registrado_por_id == usuario.pk:

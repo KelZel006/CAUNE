@@ -1,0 +1,23 @@
+{% extends "pdf/recibo_base.html" %}{% load caune %}
+{% block titulo_html %}Comprobante {{ p.numero }}{% endblock %}
+{% block folio_etiqueta %}COMPROBANTE{% endblock %}
+{% block numero %}{{ p.numero }}{% endblock %}
+{% block fecha %}{{ p.fecha|fecha }}{% endblock %}
+{% block titulo %}{% if p.forma == 'PAGO' %}COMPROBANTE DE PAGO DE GANANCIAS{% else %}COMPROBANTE DE CAPITALIZACIÓN DE GANANCIAS{% endif %}{% endblock %}
+{% block subtitulo %}Distribución {{ p.distribucion.codigo }} · período del {{ p.distribucion.fecha_inicio|fecha }} al {{ p.distribucion.fecha_fin|fecha }}{% endblock %}
+{% block destino_original %}ORIGINAL · AFILIADO{% endblock %}
+{% block aviso_anulado %}{% if p.estado == 'ANULADO' %}{% include "pdf/_anulado.html" with fecha=p.anulado_en por=p.anulado_por motivo=p.motivo_anulacion %}{% endif %}{% endblock %}
+{% block datos %}
+  <tr><td class="etq">{% if p.forma == 'PAGO' %}Pagado a{% else %}Acreditado a{% endif %}</td><td><b>{{ p.afiliado.nombre_completo }}</b></td></tr>
+  <tr><td class="etq">Código de afiliado</td><td>{{ p.afiliado.codigo }} · Identidad {{ p.afiliado.identidad|identidad }}</td></tr>
+  <tr><td class="etq">Concepto</td><td>Ganancias de la distribución {{ p.distribucion.codigo }}</td></tr>
+  {% if p.forma == 'PAGO' %}
+  <tr><td class="etq">Forma de pago</td><td>{{ p.get_metodo_pago_display }}{% if p.referencia %} · Ref. {{ p.referencia }}{% endif %} · {{ p.cuenta_fondo.nombre }}</td></tr>
+  {% else %}
+  <tr><td class="etq">Destino</td><td>Sumado a sus aportaciones{% if p.movimiento_afiliado %} (operación {{ p.movimiento_afiliado.numero_operacion }}){% endif %}. No se entregó dinero.</td></tr>
+  {% endif %}
+{% endblock %}
+{% block monto_bloque %}{% include "pdf/_monto.html" with monto=p.monto %}{% endblock %}
+{% block sello %}{% if p.estado == 'CONFIRMADO' %}{% include "pdf/_sello.html" %}{% endif %}{% endblock %}
+{% block firma_izquierda %}Entregó · {{ p.registrado_por.get_full_name|default:p.registrado_por.username }}{% endblock %}
+{% block firma_derecha %}Recibió · {{ p.afiliado.nombre_completo }}{% endblock %}

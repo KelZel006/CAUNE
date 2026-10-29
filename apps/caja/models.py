@@ -140,3 +140,66 @@ class MovimientoCaja(models.Model):
 
     def delete(self, *args, **kwargs):
         raise ValidationError("Los movimientos de caja no se eliminan; se anulan con motivo.")
+
+
+class ConciliacionBancaria(models.Model):
+    """Compara el libro de una cuenta bancaria con el estado de cuenta del banco a una fecha de corte.
+
+    Se marcan las operaciones del libro que el banco ya refleja; las demás quedan como partidas en tránsito. Solo se
+    cierra si el saldo del banco más las partidas en tránsito es igual al saldo de los libros. Una conciliación cerrada
+    no se modifica: se anula con motivo (solo la última de cada cuenta).
+    """
+
+    class Estado(models.TextChoices):
+        BORRADOR = "BORRADOR", "En proceso"
+        CERRADA = "CERRADA", "Cerrada (cuadrada)"
+        ANULADA = "ANULADA", "Anulada"
+
+    numero = models.CharField("número", max_length=20, unique=True, editable=False)
+    cuenta = models.ForeignKey(CuentaFondo, on_delete=models.PROTECT, related_name="conciliaciones",
+                               verbose_name="cuenta bancaria")
+    fecha_corte = models.DateField("fecha de corte del estado del banco")
+    saldo_banco = models.DecimalField("saldo según el banco", max_digits=14, decimal_places=2)
+    # Números de las operaciones del libro que aparecen en el estado del banco (cada módulo numera con su prefijo).
+    conciliadas = models.JSONField(default=list, blank=True)
+    observaciones = models.TextField(blank=True)
+    estado = models.CharField(max_length=8, choices=Estado.choices, default=Estado.BORRADOR, db_index=True)
+    saldo_libros = models.DecimalField("saldo según los libros al cerrar", max_digits=14, decimal_places=2,
+                                       null=True, blank=True)
+    registrado_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
+    registrado_en = models.DateTimeField(auto_now_add=True)
+    cerrado_por = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.PROTECT,
+                                    related_name="+")
+    cerrado_en = models.DateTimeField(null=True, blank=True)
+    anulado_por = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.PROTECT,
+                                    related_name="+")
+    anulado_en = models.DateTimeField(null=True, blank=True)
+    motivo_anulacion = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["-fecha_corte", "-id"]
+        verbose_name = "conciliación bancaria"
+        verbose_name_plural = "conciliaciones bancarias"
+        constraints = [
+            models.UniqueConstraint(fields=["cuenta"], condition=Q(estado="BORRADOR"),
+                                    name="conciliacion_un_borrador_por_cuenta"),
+            models.CheckConstraint(
+                condition=Q(estado="BORRADOR", cerrado_por__isnull=True)
+                | Q(estado="CERRADA", cerrado_por__isnull=False, saldo_libros__isnull=False)
+                | (Q(estado="ANULADA", anulado_por__isnull=False, anulado_en__isnull=False)
+                   & ~Q(motivo_anulacion="")),
+                name="conciliacion_estado_coherente",
+            ),
+        ]
+        permissions = [("cerrar_conciliacionbancaria", "Puede cerrar conciliaciones bancarias"),
+                       ("anular_conciliacionbancaria", "Puede anular conciliaciones bancarias")]
+
+    def __str__(self):
+        return f"{self.numero} · {self.cuenta.nombre} al {self.fecha_corte:%d/%m/%Y}"
+
+    @property
+    def editable(self):
+        return self.estado == self.Estado.BORRADOR
+
+    def delete(self, *args, **kwargs):
+        raise ValidationError("Las conciliaciones no se eliminan; se anulan con motivo.")

@@ -8,7 +8,7 @@
   <link rel="icon" type="image/png" href="{% static 'img/favicon-64.png' %}">
   <link rel="stylesheet" href="{% static 'css/caune.css' %}">
 </head>
-<body>
+<body class="{% block clase_body %}{% endblock %}">
 {% include "partials/iconos.html" %}
 {% with ns=request.resolver_match.namespace un=request.resolver_match.url_name %}
 <input type="checkbox" id="menu-toggle" hidden>
@@ -50,11 +50,12 @@
       <a href="{% url 'core:configuracion' %}" class="{% if ns == 'core' and un != 'dashboard' and un != 'auditoria' or un == 'tipos' or un == 'tipo_crear' or un == 'tipo_editar' %}activo{% endif %}">{% icono "config" %}Configuración</a>
     {% endif %}
   </nav>
-  <div class="sidebar-pie">{{ coop.siglas|default:"CAUNE" }}{% if coop.fundacion %} · desde {{ coop.fundacion }}{% endif %}<br>Fase 3 · Caja y ganancias</div>
+  <div class="sidebar-pie">{{ coop.siglas|default:"CAUNE" }}{% if coop.fundacion %} · desde {{ coop.fundacion }}{% endif %}<br>Fase 4 · Estados financieros</div>
 </aside>
 <label for="menu-toggle" class="backdrop" aria-hidden="true"></label>
 {% endwith %}
 <div class="main">
+  {% block membrete_impresion %}{% include "partials/membrete_impresion.html" %}{% endblock %}
   <header class="topbar">
     <label for="menu-toggle" class="menu-btn" aria-label="Abrir menú">{% icono "menu" %}</label>
     <h1>{% block encabezado %}{% endblock %}</h1>

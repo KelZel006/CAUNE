@@ -13,6 +13,7 @@ urlpatterns = [
     path("<int:pk>/subactividades/nueva/", views.SubactividadCreateView.as_view(), name="subactividad_crear"),
     path("<int:pk>/registrar/", views.MovimientoCreateView.as_view(), name="registrar"),
     path("movimientos/<int:pk>/anular/", views.AnularMovimientoView.as_view(), name="anular"),
+    path("movimientos/<int:pk>/comprobante/", views.ComprobanteMovimientoView.as_view(), name="comprobante"),
     path("<int:pk>/participacion/excluir/", views.ExcluirAfiliadoView.as_view(), name="excluir"),
     path("participacion/<int:pk>/incluir/", views.IncluirAfiliadoView.as_view(), name="incluir"),
 ]

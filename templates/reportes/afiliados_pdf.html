@@ -1,10 +1,12 @@
 {% extends "pdf/base_pdf.html" %}{% load caune %}
 {% block orientacion %}landscape{% endblock %}
+{% block tipo_documento %}Reporte de afiliados{% endblock %}
 {% block titulo %}Listado de afiliados{% endblock %}
+{% block subtitulo_bloque %}<p class="doc-subtitulo">{{ afiliados|length }} afiliado{{ afiliados|length|pluralize }}{% if form.is_valid and form.cleaned_data.estado %} · estado {{ form.cleaned_data.estado|lower }}{% endif %}</p>{% endblock %}
 {% block contenido %}
 <table>
   <thead><tr><th>Código</th><th>Nombre</th><th>Identidad</th><th>Teléfono</th><th>Ingreso</th><th>Estado</th>{% if ver_saldos %}<th class="num">Aportaciones</th><th class="num">Depósitos</th><th class="num">Total</th>{% endif %}</tr></thead>
-  <tbody>{% for a in afiliados %}<tr><td>{{ a.codigo }}</td><td>{{ a.apellidos }}, {{ a.nombres }}</td><td>{{ a.identidad|identidad }}</td><td>{{ a.telefono }}</td><td>{{ a.fecha_ingreso|fecha }}</td><td>{{ a.get_estado_display }}</td>
+  <tbody>{% for a in afiliados %}<tr class="{% cycle 'impar' 'par' %}"><td>{{ a.codigo }}</td><td>{{ a.apellidos }}, {{ a.nombres }}</td><td>{{ a.identidad|identidad }}</td><td>{{ a.telefono }}</td><td>{{ a.fecha_ingreso|fecha }}</td><td>{{ a.get_estado_display }}</td>
     {% if ver_saldos %}<td class="num">{{ a.saldo_aportaciones|lempiras }}</td><td class="num">{{ a.saldo_depositos|lempiras }}</td><td class="num">{{ a.saldo_total|lempiras }}</td>{% endif %}</tr>{% endfor %}</tbody>
   {% if ver_saldos %}<tfoot><tr><td colspan="6">{{ afiliados|length }} afiliado{{ afiliados|length|pluralize }}</td><td class="num">{{ totales.aportaciones|lempiras }}</td><td class="num">{{ totales.depositos|lempiras }}</td><td class="num">{{ totales.total|lempiras }}</td></tr></tfoot>{% endif %}
 </table>

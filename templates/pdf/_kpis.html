@@ -1,0 +1,1 @@
+{% load caune %}<table class="kpi" style="margin-bottom:8px"><tr>{% for etiqueta, valor in resumen %}<td{% if forloop.first %} class="destacado"{% endif %}><div class="etq">{{ etiqueta|upper }}</div><div class="valor">{{ valor|celda }}</div></td>{% endfor %}</tr></table>

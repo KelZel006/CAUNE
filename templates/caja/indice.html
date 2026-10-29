@@ -9,6 +9,7 @@
     <a class="btn" href="{% url 'caja:registrar' %}?tipo=TRANSFERENCIA">{% icono "movimientos" %}Transferencia</a>
   {% endif %}
   {% if perms.core.ver_reportes %}<a class="btn" href="{% url 'reportes:libro_caja' %}">Libro de caja</a><a class="btn" href="{% url 'reportes:flujo' %}">Flujo de efectivo</a>{% endif %}
+  {% if perms.caja.view_conciliacionbancaria %}<a class="btn" href="{% url 'caja:conciliaciones' %}">Conciliación bancaria</a>{% endif %}
   {% if perms.caja.view_categoriacaja %}<a class="btn" href="{% url 'caja:categorias' %}">Categorías</a>{% endif %}
 </div>
 <div class="kpis">

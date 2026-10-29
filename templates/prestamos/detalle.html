@@ -7,9 +7,11 @@
   {% if object.estado == 'VIGENTE' and perms.prestamos.add_pagoprestamo %}<a class="btn primario" href="{% url 'prestamos:pagar' object.pk %}">{% icono "mas" %}Registrar pago</a>{% endif %}
   {% if object.estado == 'APROBADO' and perms.prestamos.desembolsar_prestamo %}<a class="btn primario" href="{% url 'prestamos:desembolsar' object.pk %}">Registrar desembolso</a>{% endif %}
   <a class="btn" href="?formato=pdf" target="_blank">{% icono "descargar" %}Cuadro PDF</a>
+  {% if object.fecha_desembolso %}<a class="btn" href="{% url 'prestamos:comprobante_desembolso' object.pk %}" target="_blank">{% icono "recibo" %}Comprobante de desembolso</a>{% endif %}
   <a class="btn" href="?formato=xlsx">Cuadro Excel</a>
   <button class="btn" type="button" onclick="window.print()">{% icono "imprimir" %}Imprimir</button>
   {% if object.tipo_prestatario == 'EXTERNO' and perms.prestamos.change_prestamo and object.estado != 'ANULADO' and object.estado != 'PAGADO' %}<a class="btn" href="{% url 'prestamos:responsable' object.pk %}">{% if object.afiliado_responsable %}Cambiar{% else %}Asignar{% endif %} responsable</a>{% endif %}
+  {% if object.prestatario_externo_id and perms.prestamos.change_prestamo %}<a class="btn" href="{% url 'prestamos:editar_externo' object.pk %}">{% icono "editar" %}Datos del prestatario</a>{% endif %}
   {% if object.estado == 'APROBADO' and perms.prestamos.anular_prestamo %}<a class="btn peligro" href="{% url 'prestamos:anular' object.pk %}">Anular</a>{% endif %}
 </div>
 {% if object.tipo_prestatario == 'EXTERNO' and not object.afiliado_responsable %}<div class="aviso-anulado"><strong>Sin afiliado responsable.</strong> Este préstamo externo no indica qué afiliado responde si el prestatario no paga.</div>{% endif %}
@@ -35,6 +37,7 @@
     {% if object.tipo_prestatario == 'EXTERNO' %}<div><dt>Afiliado responsable</dt><dd>{% if object.afiliado_responsable %}<a href="{% url 'afiliados:detalle' object.afiliado_responsable_id %}">{{ object.afiliado_responsable.codigo }} · {{ object.afiliado_responsable.nombre_completo }}</a><div class="small muted">Responde si el prestatario no paga</div>{% else %}<span class="badge mal">Sin asignar</span>{% endif %}</dd></div>{% endif %}
     <div><dt>Mora</dt><dd>{{ object.tasa_mora|floatformat:2 }} % mensual sobre capital vencido{% if object.dias_gracia_mora %} · {{ object.dias_gracia_mora }} días de gracia{% endif %}{% if object.dias_maximos_mora %} · se congela a los {{ object.dias_maximos_mora }} días{% endif %}</dd></div>
     <div><dt>Tasa</dt><dd>{{ object.tasa|floatformat:2 }} % {{ object.get_periodicidad_tasa_display|lower }}{% if object.tasa_es_excepcion %} <span class="badge aviso">Excepción</span>{% endif %}</dd></div>
+    <div><dt>Interés total del préstamo</dt><dd>{{ interes_total|lempiras }}</dd></div>
     <div><dt>Monto solicitado / aprobado</dt><dd>{{ object.monto_solicitado|lempiras }} / {{ object.monto_aprobado|lempiras }}</dd></div>
     <div><dt>Aprobación</dt><dd>{{ object.fecha_aprobacion|fecha }}</dd></div>
     <div><dt>Desembolso</dt><dd>{% if object.fecha_desembolso %}{{ object.fecha_desembolso|fecha }} · {{ object.cuenta_desembolso.nombre }}{% else %}Pendiente{% endif %}</dd></div>

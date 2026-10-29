@@ -1,7 +1,8 @@
 """Roles iniciales (mínimo privilegio). Son configurables desde Configuración → Roles."""
 from django.contrib.auth.models import Group, Permission
 
-APPS_CAUNE = ("core", "afiliados", "aportaciones", "prestamos", "actividades", "caja", "distribucion", "auth")
+APPS_CAUNE = ("core", "afiliados", "aportaciones", "prestamos", "actividades", "caja", "distribucion", "liquidaciones",
+              "auth")
 
 ROLES = {
     "Administrador": "__todos__",
@@ -14,7 +15,8 @@ ROLES = {
         "aportaciones.view_movimientoafiliado", "aportaciones.view_tipomovimiento",
         "prestamos.view_prestamo", "prestamos.view_pagoprestamo",
         "actividades.view_actividad", "actividades.view_movimientoactividad",
-        "caja.view_movimientocaja", "distribucion.view_distribucion",
+        "caja.view_movimientocaja", "caja.view_conciliacionbancaria", "distribucion.view_distribucion",
+        "liquidaciones.view_liquidacion",
     ],
     "Encargado de préstamos": [
         "core.ver_reportes", "afiliados.view_afiliado", "afiliados.ver_estado_cuenta",
@@ -38,6 +40,8 @@ ROLES = {
         "actividades.view_actividad", "actividades.view_movimientoactividad",
         "actividades.anular_movimientoactividad",
         "caja.view_movimientocaja", "caja.view_categoriacaja", "caja.anular_movimientocaja",
+        "caja.view_conciliacionbancaria", "caja.anular_conciliacionbancaria",
+        "liquidaciones.view_liquidacion", "liquidaciones.anular_liquidacion",
         "distribucion.view_distribucion", "distribucion.anular_distribucion", "distribucion.anular_pagoganancia",
     ],
 }

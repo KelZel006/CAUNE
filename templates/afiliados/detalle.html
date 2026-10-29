@@ -8,7 +8,9 @@
   {% if perms.afiliados.ver_estado_cuenta %}<a class="btn" href="{% url 'afiliados:estado_cuenta' object.pk %}">Estado de cuenta</a>{% endif %}
   {% if perms.afiliados.change_afiliado %}<a class="btn" href="{% url 'afiliados:editar' object.pk %}">Editar datos</a>{% endif %}
   {% if perms.afiliados.cambiar_estado_afiliado %}<a class="btn{% if object.activo %} peligro{% endif %}" href="{% url 'afiliados:cambiar_estado' object.pk %}">{% if object.activo %}Inactivar{% else %}Reactivar{% endif %}</a>{% endif %}
+  {% if perms.liquidaciones.add_liquidacion and object.activo %}<a class="btn peligro" href="{% url 'liquidaciones:crear' object.pk %}">Liquidar y dar de baja</a>{% endif %}
 </div>
+{% for liq in object.liquidaciones.all %}{% if liq.estado != 'ANULADA' %}<div class="aviso-anulado"><strong>{% if liq.estado == 'EJECUTADA' %}Liquidado y dado de baja{% else %}Liquidación por aprobar{% endif %}:</strong> <a href="{% url 'liquidaciones:detalle' liq.pk %}">{{ liq.numero }}</a>{% if liq.fecha %} del {{ liq.fecha|fecha }}{% endif %} · neto {{ liq.neto|lempiras }}.</div>{% endif %}{% endfor %}
 
 {% if saldos %}
 <div class="kpis">

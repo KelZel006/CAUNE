@@ -1,4 +1,4 @@
-"""Reportes 1 a 14. Usan exactamente los mismos servicios y filtros que los módulos operativos."""
+"""Reportes 1 a 22. Usan exactamente los mismos servicios y filtros que los módulos operativos."""
 from django.core.exceptions import PermissionDenied
 from django.db.models import Count, DecimalField, Sum
 from django.shortcuts import get_object_or_404, redirect, render
@@ -143,6 +143,7 @@ def _reporte(request, *, titulo, nombre, form, encabezados, filas, columnas_mont
                totales=totales, subtitulo=subtitulo, resumen=resumen, nota=nota)
     formato = request.GET.get("formato")
     if formato == "pdf":
+        ctx["columnas_pdf"] = list(zip(encabezados, _anchos_pdf(encabezados, filas, columnas_monto)))
         return respuesta_pdf("reportes/tabla_pdf.html", ctx, nombre, request)
     if formato == "xlsx":
         def plano(v):
@@ -151,6 +152,21 @@ def _reporte(request, *, titulo, nombre, form, encabezados, filas, columnas_mont
                               columnas_monto=columnas_monto, subtitulo=subtitulo,
                               totales=[plano(v) for v in totales] if totales else None)
     return render(request, "reportes/tabla.html", ctx)
+
+
+def _anchos_pdf(encabezados, filas, columnas_monto):
+    """Porcentaje de ancho de cada columna del PDF: montos fijos y el resto según el largo de su texto."""
+    fijos = {i: 10.5 for i in columnas_monto}
+    largos = {}
+    for i, encabezado in enumerate(encabezados):
+        if i in fijos:
+            continue
+        textos = [len(str(f["valores"][i])) for f in filas[:300] if i < len(f["valores"]) and f["valores"][i]]
+        promedio = sum(textos) / len(textos) if textos else 0
+        largos[i] = min(max(promedio, len(encabezado) * .8, 6), 45) + 3  # holgura para el relleno de la celda
+    libre = max(100 - sum(fijos.values()), 20)
+    total = sum(largos.values()) or 1
+    return [round(fijos[i] if i in fijos else libre * largos[i] / total, 1) for i in range(len(encabezados))]
 
 
 def _periodo(form):
@@ -501,8 +517,8 @@ class ReporteResumenFinancieroView(PermisoMixin, TemplateView):
             fila("Préstamos por cobrar (capital)", r["cartera"]),
             fila("Total de recursos", r["recursos"]),
             fila("A QUIÉN PERTENECEN", ""),
-            fila("Aportaciones de afiliados", r["aportaciones"]),
-            fila("Depósitos reembolsables (incluye ganancias capitalizadas)", r["depositos"]),
+            fila("Aportaciones de afiliados (incluye ganancias capitalizadas)", r["aportaciones"]),
+            fila("Depósitos reembolsables de afiliados", r["depositos"]),
             fila("Utilidades acumuladas no repartidas", r["utilidades"]),
             fila("    Intereses y mora cobrados", r["intereses"]),
             fila("    Resultado de actividades", r["actividades"]),
@@ -523,3 +539,189 @@ class ReporteResumenFinancieroView(PermisoMixin, TemplateView):
                                  ("Cuadre", "Cuadra" if cuadra else f"Diferencia L {r['diferencia']:,.2f}")],
                         nota="El cuadre compara el dinero y la cartera con lo que pertenece a los afiliados y a CAUNE. "
                              "Si no es cero, hay operaciones que no se registraron por su módulo.")
+
+
+# =========================================================================== Fase 4: estados financieros, 15 a 22
+from apps.core import parametros  # noqa: E402
+from apps.core.exportar import respuesta_xlsx_estados  # noqa: E402
+
+from . import financieros as fin  # noqa: E402
+from .forms import (FiltroCajaDiariaForm, FiltroCarteraForm, FiltroCorteForm, FiltroEjercicioForm,  # noqa: E402
+                    FiltroResultadosForm)
+
+PERMISO_ESTADOS = ("core.ver_reportes", "core.ver_dashboard_financiero")
+
+
+def _firmas():
+    return {k: parametros.obtener(f"coop.firma_{k}") for k in ("presidente", "tesorero", "revisor")}
+
+
+def _estados(request, *, titulo, nombre, form, estados, orientacion="portrait"):
+    """Renderiza uno o varios estados financieros en pantalla, PDF (con firmas) o Excel (una hoja por estado)."""
+    ctx = {"titulo": titulo, "form": form, "estados": estados, "resumen": estados[0].resumen if estados else None,
+           "firmas": _firmas(), "orientacion": orientacion}
+    formato = request.GET.get("formato")
+    if formato == "pdf":
+        return respuesta_pdf("reportes/estado_pdf.html", ctx, nombre, request)
+    if formato == "xlsx":
+        return respuesta_xlsx_estados(estados, nombre)
+    return render(request, "reportes/estado.html", ctx)
+
+
+def _corte(form):
+    datos = form.cleaned_data if form.is_valid() else {}
+    return datos.get("hasta") or timezone.localdate(), datos.get("comparar")
+
+
+class ReporteBalanceView(PermisoMixin, TemplateView):
+    """15. Balance general (estado de situación financiera)."""
+    permission_required = PERMISO_ESTADOS
+
+    def get(self, request, *args, **kwargs):
+        form = FiltroCorteForm(request.GET or None)
+        hasta, comparar = _corte(form)
+        return _estados(request, titulo="Balance general", nombre="balance-general", form=form,
+                        estados=[fin.balance_general(hasta, comparar)])
+
+
+class ReporteEstadoResultadosView(PermisoMixin, TemplateView):
+    """16. Estado de resultados."""
+    permission_required = PERMISO_ESTADOS
+
+    def get(self, request, *args, **kwargs):
+        form = FiltroResultadosForm(request.GET or None)
+        desde, hasta = form.periodo()
+        comparar = form.is_valid() and form.cleaned_data.get("comparar")
+        return _estados(request, titulo="Estado de resultados", nombre="estado-resultados", form=form,
+                        estados=[fin.estado_resultados(desde, hasta, comparar)])
+
+
+class ReportePatrimonioView(PermisoMixin, TemplateView):
+    """17. Estado de cambios en el patrimonio."""
+    permission_required = PERMISO_ESTADOS
+
+    def get(self, request, *args, **kwargs):
+        form = FiltroEjercicioForm(request.GET or None)
+        desde, hasta = form.periodo()
+        return _estados(request, titulo="Estado de cambios en el patrimonio", nombre="cambios-patrimonio", form=form,
+                        estados=[fin.cambios_patrimonio(desde, hasta)], orientacion="landscape")
+
+
+class ReporteFlujoClasificadoView(PermisoMixin, TemplateView):
+    """18. Estado de flujo de efectivo."""
+    permission_required = PERMISO_ESTADOS
+
+    def get(self, request, *args, **kwargs):
+        form = FiltroEjercicioForm(request.GET or None)
+        desde, hasta = form.periodo()
+        return _estados(request, titulo="Estado de flujo de efectivo", nombre="estado-flujo-efectivo", form=form,
+                        estados=[fin.flujo_clasificado(desde, hasta)])
+
+
+def _estado_indicadores(hasta):
+    datos = fin.indicadores(hasta)
+    filas = [fin.Fila("linea", f"{nombre} · {calculo}", [valor], 0) for nombre, calculo, valor, _ in
+             (f["valores"] for f in datos["filas"])]
+    return fin.Estado(titulo="Indicadores financieros", subtitulo=f"Al {hasta:%d/%m/%Y}", columnas=["Resultado"],
+                      filas=filas, firmas=False,
+                      nota=f"La utilidad es la del ejercicio {hasta.year} (1 de enero a la fecha de corte).")
+
+
+class EstadosFinancierosView(PermisoMixin, TemplateView):
+    """Estados financieros completos del período: 15 a 19 en un solo documento firmado."""
+    permission_required = PERMISO_ESTADOS
+
+    def get(self, request, *args, **kwargs):
+        form = FiltroEjercicioForm(request.GET or None)
+        desde, hasta = form.periodo()
+        estados = [fin.balance_general(hasta), fin.estado_resultados(desde, hasta),
+                   fin.cambios_patrimonio(desde, hasta), fin.flujo_clasificado(desde, hasta),
+                   _estado_indicadores(hasta)]
+        return _estados(request, titulo=f"Estados financieros al {hasta:%d/%m/%Y}", nombre="estados-financieros",
+                        form=form, estados=estados)
+
+
+class ReporteIndicadoresView(PermisoMixin, TemplateView):
+    """19. Indicadores financieros."""
+    permission_required = PERMISO_ESTADOS
+
+    def get(self, request, *args, **kwargs):
+        form = FiltroCorteForm(request.GET or None)
+        form.fields.pop("comparar")
+        hasta, _ = _corte(form)
+        datos = fin.indicadores(hasta)
+        s, u = datos["situacion"], datos["utilidad"]
+        return _reporte(request, titulo="Indicadores financieros", nombre="indicadores-financieros", form=form,
+                        encabezados=["Indicador", "Cálculo", "Resultado", "Qué indica"], filas=datos["filas"],
+                        subtitulo=f"Al {hasta:%d/%m/%Y} · utilidad del ejercicio {hasta.year}",
+                        resumen=[("Utilidad del ejercicio", u["neto"]), ("Total activo", s["activo"]),
+                                 ("Cartera", s["cartera"]), ("Efectivo", s["efectivo"])],
+                        nota="La morosidad solo se calcula con fecha de corte de hoy.")
+
+
+class ReporteCajaCuentasView(PermisoMixin, TemplateView):
+    """20. Saldos y movimiento por caja y cuenta bancaria."""
+    permission_required = ("core.ver_reportes", "caja.view_movimientocaja")
+
+    def get(self, request, *args, **kwargs):
+        form = FiltroEjercicioForm(request.GET or None)
+        desde, hasta = form.periodo()
+        filas, t = [], {"inicial": CERO, "entradas": CERO, "salidas": CERO, "final": CERO}
+        for f in fin.movimiento_por_cuenta(desde, hasta):
+            c = f["cuenta"]
+            for k in t:
+                t[k] += f[k]
+            filas.append({"url": reverse("reportes:libro_caja") + f"?cuenta={c.pk}&desde={desde}&hasta={hasta}",
+                          "valores": [c.nombre, c.get_tipo_display(),
+                                      " ".join(x for x in (c.banco, c.numero_cuenta) if x),
+                                      "Activa" if c.activa else "Inactiva", f["inicial"], f["entradas"],
+                                      f["salidas"], f["final"]]})
+        return _reporte(request, titulo="Saldos por caja y cuenta", nombre="saldos-caja-cuentas", form=form,
+                        encabezados=["Caja o cuenta", "Tipo", "Banco y número", "Estado", "Saldo inicial", "Entradas",
+                                     "Salidas", "Saldo final"],
+                        filas=filas, columnas_monto=(4, 5, 6, 7),
+                        subtitulo=f"Del {desde:%d/%m/%Y} al {hasta:%d/%m/%Y}",
+                        totales=["Totales", "", "", "", t["inicial"], t["entradas"], t["salidas"], t["final"]],
+                        resumen=[("Saldo final", t["final"]), ("Saldo inicial", t["inicial"]),
+                                 ("Entradas", t["entradas"]), ("Salidas", t["salidas"])],
+                        nota="Las entradas y salidas incluyen las transferencias entre cajas y cuentas, que en el total "
+                             "se compensan. Cada fila abre el libro de caja de esa cuenta.")
+
+
+class ReporteCajaDiariaView(PermisoMixin, TemplateView):
+    """21. Resumen diario de caja y bancos."""
+    permission_required = ("core.ver_reportes", "caja.view_movimientocaja")
+
+    def get(self, request, *args, **kwargs):
+        form = FiltroCajaDiariaForm(request.GET or None)
+        desde, hasta = form.periodo()
+        cuenta = form.cleaned_data.get("cuenta") if form.is_valid() else None
+        r = fin.caja_diaria(cuenta, desde, hasta)
+        filas = [{"url": "", "valores": [desde, "Saldo inicial", "", None, None, None, r["inicial"]]}]
+        for d in r["filas"]:
+            filas.append({"url": "", "valores": [d["fecha"], "", d["operaciones"], d["entradas"], d["salidas"],
+                                                 d["neto"], d["saldo"]]})
+        return _reporte(request, titulo="Resumen diario de caja", nombre="caja-diaria", form=form,
+                        encabezados=["Fecha", "Detalle", "Operaciones", "Entradas", "Salidas", "Neto del día",
+                                     "Saldo al cierre"],
+                        filas=filas, columnas_monto=(3, 4, 5, 6),
+                        subtitulo=f"{cuenta.nombre if cuenta else 'Todas las cajas y cuentas'} · "
+                                  f"del {desde:%d/%m/%Y} al {hasta:%d/%m/%Y}",
+                        totales=["Totales", "", sum(d["operaciones"] for d in r["filas"]), r["entradas"], r["salidas"],
+                                 r["entradas"] - r["salidas"], r["final"]],
+                        resumen=[("Saldo final", r["final"]), ("Saldo inicial", r["inicial"]),
+                                 ("Entradas", r["entradas"]), ("Salidas", r["salidas"])],
+                        nota="Solo aparecen los días con operaciones. En el consolidado no se cuentan las "
+                             "transferencias entre cajas y cuentas de CAUNE. No hay cierre de caja: el saldo de "
+                             "cada día se recalcula siempre desde las operaciones confirmadas.")
+
+
+class ReporteCarteraView(PermisoMixin, TemplateView):
+    """22. Antigüedad de la cartera (morosidad)."""
+    permission_required = ("core.ver_reportes", "prestamos.view_prestamo")
+
+    def get(self, request, *args, **kwargs):
+        form = FiltroCarteraForm(request.GET or None)
+        tipo = form.cleaned_data.get("tipo") if form.is_valid() else None
+        return _estados(request, titulo="Antigüedad de la cartera", nombre="antiguedad-cartera", form=form,
+                        estados=[fin.estado_antiguedad(tipo or None)], orientacion="landscape")

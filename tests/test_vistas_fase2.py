@@ -16,7 +16,7 @@ from apps.prestamos.models import PagoPrestamo, Prestamo
 pytestmark = pytest.mark.usefixtures("sin_mora")
 
 
-def test_flujo_prestamo_por_la_web(client, tesorero, afiliado, caja, hoy):
+def test_flujo_prestamo_por_la_web(client, tesorero, afiliado, caja, hoy, fondear):
     client.force_login(tesorero)
     datos = {"tipo_prestatario": "INTERNO", "afiliado": afiliado.pk, "monto_solicitado": "1000",
              "monto_aprobado": "1000", "metodo_amortizacion": "CUOTA_FIJA", "plazo": "2", "tasa": "",
@@ -30,6 +30,7 @@ def test_flujo_prestamo_por_la_web(client, tesorero, afiliado, caja, hoy):
     p = Prestamo.objects.get()
     assert p.estado == "APROBADO" and p.cuotas.count() == 2
 
+    fondear(caja, p.monto_aprobado, hoy - timedelta(days=39))
     r = client.post(reverse("prestamos:desembolsar", args=[p.pk]),
                     {"fecha": (hoy - timedelta(days=39)).isoformat(), "metodo_pago": "EFECTIVO", "cuenta": caja.pk})
     assert r.status_code == 302

@@ -4,6 +4,7 @@ from decimal import Decimal as D
 
 import pytest
 from django.core.exceptions import ValidationError
+from django.urls import reverse
 
 from apps.actividades import services as acs
 from apps.afiliados.services import cambiar_estado
@@ -338,3 +339,50 @@ def test_exclusion_exige_permiso_y_motivo(socios, actividad, encargado_actividad
         acs.excluir_afiliado(rifa, socios[0], usuario=tesorero, motivo="No participó en la rifa")
     acs.incluir_afiliado(ex, usuario=tesorero, motivo="Sí participó, error de registro")
     assert acs.excluidos_ids(rifa) == set()
+
+
+def test_ganancias_por_afiliado_de_mayor_a_menor(tesorero, admin_caune, nuevo_afiliado, mov, caja, hoy):
+    poco, mucho, medio = (nuevo_afiliado(nombres=n) for n in ("Poco", "Mucho", "Medio"))
+    for afiliado, monto in ((poco, 500), (mucho, 5000), (medio, 2000)):
+        mov(afiliado, "APO", monto, fecha=hoy - timedelta(days=60))
+    cs.registrar_movimiento(tipo="INGRESO", fecha=hoy, concepto="Intereses", monto=D("750"), metodo_pago="EFECTIVO",
+                            cuenta_fondo=caja, categoria=CategoriaCaja.objects.get(nombre="Intereses bancarios"),
+                            usuario=tesorero)
+    d = ds.crear_distribucion(desde=hoy - timedelta(days=9), hasta=hoy, usuario=tesorero)
+    filas = ds.resumen(d)["filas"]
+    assert [x["afiliado"] for x in filas] == [mucho, medio, poco]
+    assert [x["total"] for x in filas] == sorted((x["total"] for x in filas), reverse=True)
+
+
+def test_ganancia_de_actividades_y_aportaciones_por_afiliado(client, tesorero, admin_caune, nuevo_afiliado, mov, caja,
+                                                            hoy):
+    a, b = nuevo_afiliado(nombres="Ana"), nuevo_afiliado(nombres="Beto")
+    mov(a, "APO", 1000, fecha=hoy - timedelta(days=60))
+    mov(b, "APO", 3000, fecha=hoy - timedelta(days=60))
+    mov(b, "APO", 500, fecha=hoy - timedelta(days=3))
+    rifa = acs.crear_actividad({"nombre": "Rifa", "fecha_inicio": hoy - timedelta(days=5)}, tesorero)
+    acs.registrar_movimiento(actividad=rifa, tipo="INGRESO", fecha=hoy - timedelta(days=2), concepto="Boletos",
+                             monto=D("800"), metodo_pago="EFECTIVO", cuenta_fondo=caja, usuario=tesorero)
+    cs.registrar_movimiento(tipo="INGRESO", fecha=hoy, concepto="Intereses", monto=D("400"), metodo_pago="EFECTIVO",
+                            cuenta_fondo=caja, categoria=CategoriaCaja.objects.get(nombre="Intereses bancarios"),
+                            usuario=tesorero)
+    d = ds.crear_distribucion(desde=hoy - timedelta(days=9), hasta=hoy, usuario=tesorero)
+    # En borrador no cuenta, salvo que se pida.
+    assert ds.ganancias_actividades_por_afiliado()["ganancia"] == 0
+    assert ds.ganancias_actividades_por_afiliado(incluir_borradores=True)["ganancia"] == D("800.00")
+    ds.aprobar(d, usuario=admin_caune)
+    g = ds.ganancias_actividades_por_afiliado()
+    # Solo la rifa (800), no la utilidad general (400); de mayor a menor.
+    assert g["ganancia"] == D("800.00") and [f["afiliado"] for f in g["filas"]] == [b, a]
+    assert {f["afiliado"]: f["aportaciones"] for f in g["filas"]} == {a: D("1000.00"), b: D("3500.00")}
+    # Con rango: solo las aportaciones del rango, y la distribución entra si su período termina en él.
+    g = ds.ganancias_actividades_por_afiliado(desde=hoy - timedelta(days=5), hasta=hoy)
+    assert {f["afiliado"]: f["aportaciones"] for f in g["filas"]} == {a: D("0.00"), b: D("500.00")}
+    assert g["ganancia"] == D("800.00")
+    assert ds.ganancias_actividades_por_afiliado(hasta=hoy - timedelta(days=1))["ganancia"] == 0
+    client.force_login(tesorero)
+    r = client.get(reverse("distribucion:lista"))
+    assert "Ganancia de actividades y aportaciones por afiliado" in r.content.decode()
+    assert [f["afiliado"] for f in r.context["ganancias"]["filas"]] == [b, a]
+    for formato in ("pdf", "xlsx"):
+        assert client.get(reverse("distribucion:lista") + f"?formato={formato}").status_code == 200

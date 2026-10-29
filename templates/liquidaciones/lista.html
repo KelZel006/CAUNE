@@ -1,0 +1,16 @@
+{% extends "base.html" %}{% load caune %}
+{% block titulo %}Liquidaciones{% endblock %}
+{% block encabezado %}Liquidación de afiliados{% endblock %}
+{% block contenido %}
+<div class="card">
+  <p class="muted small" style="margin-top:0">Para liquidar a un afiliado que se retira, abra su ficha y use «Liquidar y dar de baja». La aprueba una persona distinta a la que la calcula.</p>
+  <div class="tabla-wrap"><table class="tabla">
+    <thead><tr><th>Número</th><th>Afiliado</th><th>Calculada</th><th>Ejecutada</th><th class="num">Haberes</th><th class="num">Deudas</th><th class="num">Neto</th><th>Estado</th></tr></thead>
+    <tbody>{% for l in object_list %}<tr class="{% if l.estado == 'ANULADA' %}anulado{% endif %}"><td class="sin-tachar"><a href="{% url 'liquidaciones:detalle' l.pk %}"><strong>{{ l.numero }}</strong></a></td><td>{{ l.afiliado.codigo }} · {{ l.afiliado.nombre_completo }}</td><td>{{ l.fecha_calculo|fecha }}</td><td>{{ l.fecha|fecha }}</td>
+      <td class="num">{{ l.haberes|lempiras }}</td><td class="num">{{ l.deuda_prestamos|lempiras }}</td><td class="num"><strong>{{ l.neto|lempiras }}</strong></td>
+      <td class="sin-tachar">{% if l.estado == 'EJECUTADA' %}<span class="badge ok">Ejecutada</span>{% elif l.estado == 'ANULADA' %}<span class="badge mal">Anulada</span>{% else %}<span class="badge aviso">Por aprobar</span>{% endif %}</td></tr>
+    {% empty %}<tr><td colspan="8" class="vacio">Aún no hay liquidaciones.</td></tr>{% endfor %}</tbody>
+  </table></div>
+  {% include "partials/paginacion.html" %}
+</div>
+{% endblock %}

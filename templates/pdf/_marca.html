@@ -1,0 +1,6 @@
+<td style="width:{{ ancho_logo|default:62 }}px"><img src="img/logo-caune-pdf.png" width="{{ logo|default:56 }}" height="{{ logo|default:56 }}"></td>
+<td>
+  <div class="mb-nombre">{{ coop.nombre }}</div>
+  <div class="mb-siglas">{{ coop.siglas|upper }}{% if coop.fundacion %} · FUNDADA EN {{ coop.fundacion }}{% endif %}</div>
+  <div class="mb-contacto">{% if coop.rtn %}RTN {{ coop.rtn }}{% endif %}{% if coop.rtn and coop.direccion %} · {% endif %}{{ coop.direccion|default:"Honduras" }}{% if coop.telefono %} · Tel. {{ coop.telefono }}{% endif %}{% if coop.correo %} · {{ coop.correo }}{% endif %}</div>
+</td>

@@ -1,0 +1,20 @@
+{% extends "pdf/recibo_base.html" %}{% load caune %}
+{% block titulo_html %}Desembolso {{ p.numero }}{% endblock %}
+{% block folio_etiqueta %}DESEMBOLSO{% endblock %}
+{% block numero %}{{ p.numero }}{% endblock %}
+{% block fecha %}{{ p.fecha_desembolso|fecha }}{% endblock %}
+{% block titulo %}COMPROBANTE DE DESEMBOLSO DE PRÉSTAMO{% endblock %}
+{% block subtitulo %}{{ p.get_tipo_prestatario_display }} · {{ p.get_metodo_amortizacion_display }}{% endblock %}
+{% block destino_original %}ORIGINAL · PRESTATARIO{% endblock %}
+{% block datos %}
+  <tr><td class="etq">Prestatario</td><td><b>{{ p.prestatario_nombre }}</b></td></tr>
+  {% if p.afiliado_responsable %}<tr><td class="etq">Afiliado responsable</td><td>{{ p.afiliado_responsable.codigo }} · {{ p.afiliado_responsable.nombre_completo }}</td></tr>{% endif %}
+  <tr><td class="etq">Condiciones</td><td>{{ p.plazo }} cuotas · tasa {{ p.tasa|floatformat:2 }} % mensual · primer vencimiento {{ p.fecha_primer_vencimiento|fecha }}</td></tr>
+  <tr><td class="etq">Entregado desde</td><td>{{ p.cuenta_desembolso.nombre }}{% if p.referencia_desembolso %} · Ref. {{ p.referencia_desembolso }}{% endif %}</td></tr>
+  <tr><td class="etq">Total a pagar según cuadro</td><td>{{ total_cuadro|lempiras }} ({{ p.monto_aprobado|lempiras }} de capital + {{ intereses_cuadro|lempiras }} de intereses)</td></tr>
+{% endblock %}
+{% block monto_bloque %}{% include "pdf/_monto.html" with monto=p.monto_aprobado etiqueta="DESEMBOLSADO" %}{% endblock %}
+{% block sello %}{% if p.estado != 'ANULADO' %}{% include "pdf/_sello.html" %}{% endif %}{% endblock %}
+{% block firma_izquierda %}Entregó · {{ p.desembolsado_por.get_full_name|default:p.desembolsado_por.username }}{% endblock %}
+{% block firma_derecha %}Recibió conforme · {{ p.prestatario_nombre }}{% endblock %}
+{% block nota %}El prestatario declara recibir el monto indicado y se compromete a pagarlo según el cuadro de amortización aprobado. Constancia registrada en el sistema de {{ coop.siglas }}.{% endblock %}

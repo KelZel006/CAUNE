@@ -1,0 +1,12 @@
+{% load static %}<div class="membrete-impresion" aria-hidden="true">
+  <div class="mi-marca">
+    <img src="{% static 'img/logo-caune-192.png' %}" alt="" width="58" height="58">
+    <div>
+      <div class="mi-nombre">{{ coop.nombre }}</div>
+      <div class="mi-siglas">{{ coop.siglas|upper }}{% if coop.fundacion %} · FUNDADA EN {{ coop.fundacion }}{% endif %}</div>
+      <div class="mi-contacto">{% if coop.rtn %}RTN {{ coop.rtn }} · {% endif %}{{ coop.direccion|default:"Honduras" }}{% if coop.telefono %} · Tel. {{ coop.telefono }}{% endif %}{% if coop.correo %} · {{ coop.correo }}{% endif %}</div>
+    </div>
+  </div>
+  <div class="mi-fecha">Impreso el {% now "d/m/Y" %} a las {% now "H:i" %}<br>por {{ user.get_full_name|default:user.username }}</div>
+</div>
+<div class="pie-impresion" aria-hidden="true">{{ coop.nombre }} ({{ coop.siglas }}){% if coop.telefono %} · Tel. {{ coop.telefono }}{% endif %} · Documento impreso desde el sistema de gestión</div>
